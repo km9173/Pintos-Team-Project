@@ -65,6 +65,7 @@ start_process (void *file_name_)
 {
   char *file_name = file_name_;
   char *saveptr;
+  char *temp;
   char **parse;
   struct intr_frame if_;
   bool success;
@@ -80,14 +81,18 @@ start_process (void *file_name_)
 
   printf("file_name tokens count : %d\n", token_length);
 
-  parse = (char**)malloc(sizeof(char*) * token_length);
+  parse = (char**)malloc(sizeof(char*) * (token_length + 1));
 
   i = 0;
-  parse[i] = strtok_r(file_name, " ", &saveptr);
+  temp = strtok_r(file_name, " ", &saveptr);
+  parse[i] = (char*)malloc(sizeof(char) * (strlen(temp) + 1));
+  strlcpy(parse[i], temp, (strlen(temp) + 1));
   printf("%s\n", parse[i]);
   for (++i; i < token_length; i++)
   {
-    parse[i] = strtok_r(NULL, " ", &saveptr);
+    temp = strtok_r(NULL, " ", &saveptr);
+    parse[i] = (char*)malloc(sizeof(char) * (strlen(temp) + 1));
+    strlcpy(parse[i], temp, (strlen(temp) + 1));
     printf("%s\n", parse[i]);
   }
 
@@ -96,7 +101,7 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (parse[0], &if_.eip, &if_.esp);
   printf("load result : %d\n", success);
 
   /* If load failed, quit. */
@@ -105,7 +110,7 @@ start_process (void *file_name_)
     thread_exit ();
 
   printf("before argument_stack func call\n");
-  //argument_stack(parse, token_length, &if_.esp);
+  argument_stack(parse, token_length, &if_.esp);
   printf("argument stack func end!\n");
   hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   // TODO : free parse
@@ -116,6 +121,9 @@ start_process (void *file_name_)
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
   printf("before start process\n");
+  for(i = 0; i < token_length; i++)
+    free(parse[i]);
+  free(parse);
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   printf("end start process");
   NOT_REACHED ();
@@ -125,42 +133,55 @@ start_process (void *file_name_)
 void argument_stack(char **parse, int count, void **esp)
 {
   int i, j;
-
+  char *tmp;
+  printf("1\n");
+  printf("%s\n", parse[0]);
   /* push program(executable file) name and args */
   for (i = count - 1; i > -1; i--)
   {
+    //printf("parse[%d] : %s\n", i, parse[i]);
+    printf("i : %d\n", i);
     for (j = strlen(parse[i]); j > -1; j--)
     {
       *esp = *esp - 1;
       **(char **)esp = parse[i][j];
     }
-
-    for (j = strlen(parse[i]) + 1; j % 4 != 0; j++)
-    {
-      *esp = *esp - 1;
-      **(uint8_t **)esp = 0;
-    }
   }
 
-  /* push args ptr address */
-  *esp = *esp - 4;
-  memcpy(*esp, 0, 4);
-
-  for(i = count - 1; i > -1; i--)
+  parse[count] = 0;
+  for (i = 0; i < (size_t)*esp % 4; i++)
   {
-    *esp = *esp - 4;
-    memcpy(*esp, &parse[i], 4);
+    *esp = *esp - 1;
+    **(uint8_t **)esp = 0;
+  }
+  printf("end for loop\n");
+  //printf("address : %p, value : %s\n", *esp, **esp);
+
+  // printf("2\n");
+  // /* push args ptr address */
+  // *esp = *esp - 4;
+  // memcpy(*esp, &parse[count], 4);
+
+  printf("3\n");
+  for(i = count; i > -1; i--)
+  {
+    *esp = *esp - sizeof(char *);
+    memcpy(*esp, &parse[i], sizeof(char *));
   }
 
+  printf("4\n");
   /* */
-  *esp = *esp - 4;
-  **(char**)esp = (void*)&parse;
+  tmp = *esp;
+  *esp = *esp - sizeof(char **);
+  memcpy(*esp, &tmp, sizeof(char **));
 
-  *esp = *esp - 4;
-  memcpy(*esp, count, 4);
+  printf("5\n");
+  *esp = *esp - sizeof(int);
+  memcpy(*esp, &count, sizeof(int));
 
-  *esp = *esp - 4;
-  memcpy(*esp, 0, 4);
+  printf("6\n");
+  *esp = *esp - sizeof(void *);
+  memcpy(*esp, &parse[count], sizeof(void *));
   printf("end");
 }
 
