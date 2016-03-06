@@ -62,8 +62,28 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
+  char *saveptr;
+  char **parse;
   struct intr_frame if_;
   bool success;
+  int token_length = 1;
+  int i = 0;
+
+  for (i = 0; file_name_[i] != '\0'; i++)
+    if (file_name_[i] == ' ')
+      token_length++;
+  printf("file_name tokens count : %d", token_length);
+
+  parse = (char**)malloc(sizeof(char*) * token_length);
+
+  i = 0;
+  parse[i] = strtok_r(file_name_, " ", &saveptr);
+  printf("%s\n", parse[i]);
+  for (++i; i < token_length; i++)
+  {
+    parse[i] = strtok_r(NULL, " ", &saveptr);
+    printf("%s\n", parse[i]);
+  }
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
