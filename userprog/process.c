@@ -100,9 +100,12 @@ start_process (void *file_name_)
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
+  if (!success)
     thread_exit ();
 
+  argument_stack(parse, token_length, &if_.esp);
+  hex_dump(if_.esp, if_.esp, PHYS_BASE - if._esp, true);
+  // TODO : free parse
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -111,6 +114,53 @@ start_process (void *file_name_)
      and jump to it. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
+}
+
+void argument_stack(char **parse, int count, void **esp)
+{
+  int i, j;
+
+  /* push program(executable file) name and args */
+  for (i = count - 1; i > -1; i--)
+  {
+    for (j = strlen(parse[i]); j > -1; j--)
+    {
+      *esp = *esp - 1;
+      **(char **)esp = parse[i][j];
+    }
+
+    for (j = strlen(parse[i]) + 1; j % 4 != 0; j++)
+    {
+      *esp = *esp - 1;
+      **(uint8_t **)esp = 0;
+    }
+  }
+
+  /* push args ptr address */
+  *esp = *esp - 1;
+  *(char*)esp = 0;
+  *esp = *esp - 1;
+  *(char*)esp = 0;
+  *esp = *esp - 1;
+  *(char*)esp = 0;
+  *esp = *esp - 1;
+  *(char*)esp = 0;
+
+  for(i = count - 1; i > -1; i--)
+  {
+    *esp = *esp - 4;
+    *(char*)esp = (void*)&parse[i];
+  }
+
+  /* */
+  *esp = *esp - 4;
+  **(char**)esp = (void*)&parse;
+
+  *esp = *esp - 4;
+  (int)esp = count;
+
+  *esp = *esp - 4;
+  (void*)esp = 0;
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
