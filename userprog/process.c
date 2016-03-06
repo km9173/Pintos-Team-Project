@@ -36,6 +36,12 @@ process_execute (const char *file_name)
   /* get executable file name in file_name string
      so we can create thread name by executable file name. */
   name = strtok_r(file_name, " ", &saveptr);
+  printf("exe name : %s", name);
+  
+  // TODO : check name is null. if null then return error
+  if (name == NULL)
+    return -1;
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
