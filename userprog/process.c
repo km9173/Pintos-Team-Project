@@ -33,10 +33,12 @@ process_execute (const char *file_name)
   char *saveptr;
   tid_t tid;
 
+  printf("before file name value : %s\n", file_name);
   /* get executable file name in file_name string
      so we can create thread name by executable file name. */
   name = strtok_r(file_name, " ", &saveptr);
   printf("exe name : %s\n", name);
+  printf("after file name value : %s\n", file_name);
 
   // TODO : check name is null. if null then return error
   if (name == NULL)
