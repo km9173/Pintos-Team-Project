@@ -69,7 +69,7 @@ start_process (void *file_name_)
   int token_length = 1;
   int i = 0;
 
-  for (i = 0; file_name_[i] != '\0'; i++)
+  for (i = 0; file_name[i] != '\0'; i++)
     if (file_name_[i] == ' ')
       token_length++;
   printf("file_name tokens count : %d", token_length);
@@ -77,7 +77,7 @@ start_process (void *file_name_)
   parse = (char**)malloc(sizeof(char*) * token_length);
 
   i = 0;
-  parse[i] = strtok_r(file_name_, " ", &saveptr);
+  parse[i] = strtok_r(file_name, " ", &saveptr);
   printf("%s\n", parse[i]);
   for (++i; i < token_length; i++)
   {
