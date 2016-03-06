@@ -138,18 +138,18 @@ void argument_stack(char **parse, int count, void **esp)
 
   /* push args ptr address */
   *esp = *esp - 1;
-  *(char*)esp = 0;
+  **(char*)esp = 0;
   *esp = *esp - 1;
-  *(char*)esp = 0;
+  **(char*)esp = 0;
   *esp = *esp - 1;
-  *(char*)esp = 0;
+  **(char*)esp = 0;
   *esp = *esp - 1;
-  *(char*)esp = 0;
+  **(char*)esp = 0;
 
   for(i = count - 1; i > -1; i--)
   {
     *esp = *esp - 4;
-    *(char*)esp = (void*)&parse[i];
+    **(char*)esp = (void*)&parse[i];
   }
 
   /* */
@@ -157,10 +157,10 @@ void argument_stack(char **parse, int count, void **esp)
   **(char**)esp = (void*)&parse;
 
   *esp = *esp - 4;
-  (int)esp = count;
+  **(int)esp = count;
 
   *esp = *esp - 4;
-  (void*)esp = 0;
+  **(void*)esp = 0;
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
