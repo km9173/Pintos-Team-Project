@@ -70,9 +70,9 @@ start_process (void *file_name_)
   int i = 0;
 
   for (i = 0; file_name[i] != '\0'; i++)
-    if (file_name[i] == ' ')
+    if ((int)file_name[i] == 32)
       token_length++;
-  printf("file_name tokens count : %d", token_length);
+  printf("file_name tokens count : %d\n", token_length);
 
   parse = (char**)malloc(sizeof(char*) * token_length);
 
