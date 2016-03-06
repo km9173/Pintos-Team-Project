@@ -97,13 +97,16 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
+  printf("load result : %d\n", success);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success)
     thread_exit ();
 
-  argument_stack(parse, token_length, &if_.esp);
+  printf("before argument_stack func call\n");
+  //argument_stack(parse, token_length, &if_.esp);
+  printf("argument stack func end!\n");
   hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   // TODO : free parse
   /* Start the user process by simulating a return from an
@@ -112,8 +115,11 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
+  printf("before start process\n");
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
+  printf("end start process");
   NOT_REACHED ();
+  printf("=============\n");
 }
 
 void argument_stack(char **parse, int count, void **esp)
@@ -137,19 +143,13 @@ void argument_stack(char **parse, int count, void **esp)
   }
 
   /* push args ptr address */
-  *esp = *esp - 1;
-  **(char*)esp = '\0';
-  *esp = *esp - 1;
-  **(char*)esp = '\0';
-  *esp = *esp - 1;
-  **(char*)esp = '\0';
-  *esp = *esp - 1;
-  **(char*)esp = '\0';
+  *esp = *esp - 4;
+  memcpy(*esp, 0, 4);
 
   for(i = count - 1; i > -1; i--)
   {
     *esp = *esp - 4;
-    **(char*)esp = (void*)&parse[i];
+    memcpy(*esp, &parse[i], 4);
   }
 
   /* */
@@ -157,10 +157,11 @@ void argument_stack(char **parse, int count, void **esp)
   **(char**)esp = (void*)&parse;
 
   *esp = *esp - 4;
-  **(int)esp = count;
+  memcpy(*esp, count, 4);
 
   *esp = *esp - 4;
-  **(void*)esp = 0;
+  memcpy(*esp, 0, 4);
+  printf("end");
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
