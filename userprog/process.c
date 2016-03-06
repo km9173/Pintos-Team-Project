@@ -138,13 +138,13 @@ void argument_stack(char **parse, int count, void **esp)
 
   /* push args ptr address */
   *esp = *esp - 1;
-  **(char*)esp = NULL;
+  **(char*)esp = '\0';
   *esp = *esp - 1;
-  **(char*)esp = NULL;
+  **(char*)esp = '\0';
   *esp = *esp - 1;
-  **(char*)esp = NULL;
+  **(char*)esp = '\0';
   *esp = *esp - 1;
-  **(char*)esp = NULL;
+  **(char*)esp = '\0';
 
   for(i = count - 1; i > -1; i--)
   {
