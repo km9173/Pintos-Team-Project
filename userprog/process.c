@@ -70,7 +70,7 @@ start_process (void *file_name_)
   int i = 0;
 
   for (i = 0; file_name[i] != '\0'; i++)
-    if (file_name_[i] == ' ')
+    if (file_name[i] == ' ')
       token_length++;
   printf("file_name tokens count : %d", token_length);
 
