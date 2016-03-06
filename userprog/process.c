@@ -104,7 +104,7 @@ start_process (void *file_name_)
     thread_exit ();
 
   argument_stack(parse, token_length, &if_.esp);
-  hex_dump(if_.esp, if_.esp, PHYS_BASE - if._esp, true);
+  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   // TODO : free parse
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
