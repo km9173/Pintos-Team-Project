@@ -33,10 +33,6 @@ process_execute (const char *file_name)
   char *saveptr;
   tid_t tid;
 
-  // TODO : check name is null. if null then return error
-  if (name == NULL)
-    return -1;
-
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
@@ -50,6 +46,10 @@ process_execute (const char *file_name)
   name = strtok_r(file_name, " ", &saveptr);
   printf("exe name : %s\n", name);
   printf("after file name value : %s\n", file_name);
+
+  // TODO : check name is null. if null then return error
+  if (name == NULL)
+    return -1;
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (name, PRI_DEFAULT, start_process, fn_copy);
