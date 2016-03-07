@@ -30,7 +30,9 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-  char *token = NULL, *save_ptr; /* G: for parsing */
+
+  /* G: for parsing */
+  char *token = NULL, *save_ptr;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -60,18 +62,23 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
-  char *token = NULL, *save_ptr; /* G: for parsing */
+
+  /* G: for parsing */
+  char *token = NULL, *save_ptr;
+  int token_num = 0;
 
   /* G: Skip the first token which will be FILE_NAME */
-  token = strtok_r(fn_copy, " ", save_ptr);
-  token = strtok_r(fn_copy, " ", save_ptr);
-/////////////////////////////////
+  for ( token = strtok_r(fn_copy, " ", save_ptr);
+	token != NULL;
+	token = strtok_r(fn_copy, " ", save_ptr) )
+	token_num++;
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
+/////////////////////////////
   success = load (file_name, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
