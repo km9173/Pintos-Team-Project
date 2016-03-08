@@ -21,6 +21,46 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+// Store arguments in User stack
+void
+argument_stack (char **parse, int count, void **esp)
+{
+  char *argv[128];
+  int i, j;
+
+  // Store argv
+  for (i = count - 1; i > -1; i--)
+  {
+    for (j = strlen(parse[i]); j > -1; j--)
+    {
+      *esp = *esp - 1;
+      **(char **)esp = parse[i][j];
+    }
+    argv[i] = *esp;
+  }
+  // word-align
+  while ((int)*esp % 4 != 0)
+  {
+    *esp = *esp - 1;
+    **(uint8_t **)esp = 0;
+  }
+
+  // Store *argv address
+  for (i = count; i > -1; i--)
+  {
+    *esp = *esp - 4;
+    *(char *)esp = argv[i];
+  }
+
+  // Store **argv address
+  *esp = *esp - 4;
+  *(char **)esp = *esp + 4;
+
+  // Store argc
+  *esp = *esp - 4;
+  **(int **)esp = count;
+}
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -30,9 +70,8 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-
-  /* G: for parsing */
-  char *token = NULL, *save_ptr;
+  // G: Variables for parsing
+  char *fn = NULL, *save_ptr;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -41,14 +80,15 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  /* G: Parse the first token which will be FILE_NAME */
-  token = strtok_r(fn_copy, " ", save_ptr);
-  if (token == NULL)
+  // G: Parse the first token which will be fn
+  fn = strtok_r (fn_copy, " ", &save_ptr);
+  
+  if (fn == NULL)
     return TID_ERROR;
 
   /* Create a new thread to execute FILE_NAME. */
-  /* G: Changed "file_name" to "token" */
-  tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
+  // G: Changed "file_name" to "fn"
+  tid = thread_create (fn, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -62,28 +102,34 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
-
-  /* G: for parsing */
-  char *token = NULL, *save_ptr;
-  int token_num = 0;
-
-  /* G: Skip the first token which will be FILE_NAME */
-  for ( token = strtok_r(fn_copy, " ", save_ptr);
-	token != NULL;
-	token = strtok_r(fn_copy, " ", save_ptr) )
-	token_num++;
+  // G: Variables for parsing
+  int argc = 0, ARGC_MAX = 127;
+  char *argv[128], *save_ptr;
+printf("file_name: %s\n", file_name);
+  // G: Get tokens which will be FILE_NAME and argv[]
+  for ( argv[argc] = strtok_r (file_name, " ", &save_ptr);
+        (argv[argc] != NULL) && (argc < ARGC_MAX);
+        argv[++argc] = strtok_r (NULL, " ", &save_ptr) )
+	printf("argv: %s\n", argv[argc]);
+  if (argc >= ARGC_MAX)
+    thread_exit ();
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  // G: Changed first argv 'file_name' into 'argv[0]'
+  success = load (argv[0], &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
+
+  // G: Save arguments in stack
+  argument_stack (argv, argc, &if_.esp);
+  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
