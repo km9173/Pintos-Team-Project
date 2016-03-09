@@ -192,6 +192,8 @@ void argument_stack(char **parse, int count, void **esp)
   *esp = *esp - sizeof(void *);
   memcpy(*esp, &parse[count], sizeof(void *));
   printf("end");
+
+  free(args_address);
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
