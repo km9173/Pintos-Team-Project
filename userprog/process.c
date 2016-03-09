@@ -37,24 +37,28 @@ argument_stack (char **parse, int count, void **esp)
       **(char **)esp = parse[i][j];
     }
     argv[i] = *esp;
+printf("argv[%d] = %x\n", i, argv[i]);
   }
   // word-align
   while ((int)*esp % 4 != 0)
   {
     *esp = *esp - 1;
     **(uint8_t **)esp = 0;
+printf("blank = %x\n", *esp);
   }
 
   // Store *argv address
-  for (i = count; i > -1; i--)
+  for (i = count - 1; i > -1; i--)
   {
     *esp = *esp - 4;
-    *(char *)esp = argv[i];
+    **(char ***)esp = argv[i];
+printf("*esp = %x\n", *esp);
   }
 
   // Store **argv address
   *esp = *esp - 4;
-  **(char **)esp = *esp + 4;
+  **(char ***)esp = *esp + 4;
+printf("argv = %x\n", *esp);
 
   // Store argc
   *esp = *esp - 4;
@@ -130,6 +134,7 @@ start_process (void *file_name_)
 
   // G: Save arguments in stack
   argument_stack (argv, argc, &if_.esp);
+  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
