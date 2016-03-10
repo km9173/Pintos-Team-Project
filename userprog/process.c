@@ -37,14 +37,12 @@ argument_stack (char **parse, int count, void **esp)
       **(char **)esp = parse[i][j];
     }
     argv[i] = *esp;
-printf("argv[%d] = %x\n", i, argv[i]);
   }
   // word-align
   while ((int)*esp % 4 != 0)
   {
     *esp = *esp - 1;
     **(uint8_t **)esp = 0;
-printf("blank = %x\n", *esp);
   }
 
   // Store *argv address
@@ -52,13 +50,11 @@ printf("blank = %x\n", *esp);
   {
     *esp = *esp - 4;
     **(char ***)esp = argv[i];
-printf("*esp = %x\n", *esp);
   }
 
   // Store **argv address
-  *esp = *esp - 4;
+  *esp = *esp - 4; 
   **(char ***)esp = *esp + 4;
-printf("argv = %x\n", *esp);
 
   // Store argc
   *esp = *esp - 4;
