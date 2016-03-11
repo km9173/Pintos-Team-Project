@@ -72,14 +72,10 @@ start_process (void *file_name_)
   int token_length = 1;
   int i = 0;
 
-  for (i = 0; file_name[i] != '\0'; i++)
-  {
-    if ((int)file_name[i] == 32)
+  for (i = 0; file_name[i] != '\0'; i++) {
+    if ((int)file_name[i] == 32) // 32 mean ASCII code of ' '
       token_length++;
-    printf("%d ", file_name[i]);
   }
-
-  printf("file_name tokens count : %d\n", token_length);
 
   parse = (char**)malloc(sizeof(char*) * (token_length + 1));
 
@@ -87,13 +83,11 @@ start_process (void *file_name_)
   temp = strtok_r(file_name, " ", &saveptr);
   parse[i] = (char*)malloc(sizeof(char) * (strlen(temp) + 1));
   strlcpy(parse[i], temp, (strlen(temp) + 1));
-  printf("%s\n", parse[i]);
-  for (++i; i < token_length; i++)
-  {
+
+  for (++i; i < token_length; i++) {
     temp = strtok_r(NULL, " ", &saveptr);
     parse[i] = (char*)malloc(sizeof(char) * (strlen(temp) + 1));
     strlcpy(parse[i], temp, (strlen(temp) + 1));
-    printf("%s\n", parse[i]);
   }
 
   /* Initialize interrupt frame and load executable. */
@@ -102,32 +96,29 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (parse[0], &if_.eip, &if_.esp);
-  printf("load result : %d\n", success);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success)
     thread_exit ();
 
-  printf("before argument_stack func call\n");
   argument_stack(parse, token_length, &if_.esp);
-  printf("argument stack func end!\n");
+  // free arguments in heap memory
+  for(i = 0; i <= token_length; i++)
+    free(parse[i]);
+  free(parse);
+
+  // print current stack memory status
   hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
-  // TODO : free parse
+
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-  printf("before start process\n");
-  for(i = 0; i < token_length; i++)
-    free(parse[i]);
-  free(parse);
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
-  printf("end start process");
   NOT_REACHED ();
-  printf("=============\n");
 }
 
 void argument_stack(char **parse, int count, void **esp)
@@ -137,62 +128,37 @@ void argument_stack(char **parse, int count, void **esp)
   char **args_address;
   args_address = (char**)malloc(sizeof(char*) * (count + 1));
   args_address[count] = 0;
-  printf("1\n");
-  printf("%s\n", parse[0]);
-  printf("esp addrss : 0x%u\n", (unsigned)*esp);
+
   /* push program(executable file) name and args */
-  for (i = count - 1; i > -1; i--)
-  {
-    //printf("parse[%d] : %s\n", i, parse[i]);
-    printf("i : %d\n", i);
-    printf("parse[%d] length : %d\n", i,  strlen(parse[i]));
-    for (j = strlen(parse[i]); j > -1; j--)
-    {
+  for (i = count - 1; i > -1; i--) {
+    for (j = strlen(parse[i]); j > -1; j--) {
       *esp = *esp - 1;
       **(char **)esp = parse[i][j];
     }
     args_address[i] = *esp;
-    printf("esp addrss : 0x%u\n", (unsigned)*esp);
   }
-  printf("esp addrss : 0x%u\n", (unsigned)*esp);
 
   parse[count] = 0;
-  for (i = 0; i < (size_t)*esp % 4; i++)
-  {
+  for (i = 0; i < (size_t)*esp % 4; i++) {
     *esp = *esp - 1;
     **(uint8_t **)esp = 0;
   }
-  printf("end for loop\n");
-  //printf("address : %p, value : %s\n", *esp, **esp);
 
-  // printf("2\n");
-  // /* push args ptr address */
-  // *esp = *esp - 4;
-  // memcpy(*esp, &parse[count], 4);
-
-  printf("3\n");
-  printf("esp addrss : 0x%u\n", (unsigned)*esp);
-  for(i = count; i > -1; i--)
-  {
+  for(i = count; i > -1; i--) {
     *esp = *esp - sizeof(char *);
     memcpy(*esp, &args_address[i], sizeof(char *));
   }
 
-  printf("4\n");
   /* */
   tmp = *esp;
   *esp = *esp - sizeof(char **);
   memcpy(*esp, &tmp, sizeof(char **));
 
-  printf("5\n");
   *esp = *esp - sizeof(int);
   memcpy(*esp, &count, sizeof(int));
 
-  printf("6\n");
   *esp = *esp - sizeof(void *);
   memcpy(*esp, &parse[count], sizeof(void *));
-  printf("end");
-
   free(args_address);
 }
 
