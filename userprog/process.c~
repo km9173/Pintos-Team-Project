@@ -20,7 +20,49 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-void argument_stack (char **parse, int count, void **esp);
+
+// Store arguments in User stack
+void
+argument_stack (char **parse, int count, void **esp)
+{
+  char *argv[128];
+  int i, j;
+
+  // Store argv
+  for (i = count; i > 0; i--)
+  {
+    for (j = strlen(parse[i]); j > -1; j--)
+    {
+      *esp = *esp - 1;
+      **(char **)esp = parse[i][j];
+    }
+    argv[i] = *esp;
+  }
+  // word-align
+  while ((int)*esp % 4 != 0)
+  {
+    *esp = *esp - 1;
+    **(uint8_t **)esp = 0;
+  }
+
+  // Store *argv address
+  for (i = count; i > 0; i--)
+  {
+    *esp = *esp - 4;
+    **(char ***)esp = argv[i];
+  }
+
+  // Store **argv address
+  *esp = *esp - 4; 
+  **(char ***)esp = *esp + 4;
+
+  // Store argc
+  *esp = *esp - 4;
+  **(int **)esp = count;
+
+  // Goto return addr
+  *esp = *esp - 4;
+}
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -31,7 +73,7 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-  // Variables for parsing
+  // GG: Variables for parsing
   char *fn = NULL, *save_ptr;
 
   /* Make a copy of FILE_NAME.
@@ -41,10 +83,10 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  // Parse the first token which will be file_name
-  fn = strtok_r (file_name, " ", &save_ptr);
+  // GG: Parse the first token which will be fn
+  fn = strtok_r (fn_copy, " ", &save_ptr);
   
-  // check name is NULL. if NULL then return error
+  // GM: check name is NULL. if NULL then return error
   if (fn == NULL)
   {
     palloc_free_page (fn_copy);
@@ -52,7 +94,7 @@ process_execute (const char *file_name)
   }
 
   /* Create a new thread to execute FILE_NAME. */
-  // Changed "file_name" to "fn"
+  // GG: Changed "file_name" to "fn"
   tid = thread_create (fn, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
@@ -67,33 +109,43 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
-  // Variables for parsing
-  int argc = 0, i = 0;
-  char **argv, *save_ptr, temp = ' '; // To check if first char is ' '
+  // GG: Variables for parsing
+  int argc = 0;//, ARGC_MAX = 128;
+  char **argv, *save_ptr;
 
-  for (i = 0; file_name[i] != '\0'; i++)
+  // GG: Get file name and arguments
+  argv[argc] = (int*)malloc(4);
+  argv[argc] = strtok_r (file_name, " ", &save_ptr);
+  while (argv[argc] != NULL)
   {
-    if (temp == ' ' && file_name[i] != ' ')
-      argc++;
-    temp = file_name[i];
+    argc++;
+    argv[argc] = (int*)malloc(4);
+    argv[argc] = strtok_r (NULL, " ", &save_ptr);
   }
 
-  // Get file name and arguments
-  argv = (char**)malloc(sizeof(char*) * (argc + 1));
-  argv[0] = strtok_r (file_name, " ", &save_ptr);
-  for (i = 1; i <= argc; i++)
-    argv[i] = strtok_r (NULL, " ", &save_ptr);
+  // GG: Get file name
+  //argv[0] = strtok_r (file_name, " ", &save_ptr);
+  //save_ptr++;
+  // GG: Get argv[]
+  //for ( argv[argc] = strtok_r (NULL, " ", &save_ptr);
+  //      (argv[argc] != NULL) && (argc < ARGC_MAX);
+  //      argv[argc] = strtok_r (NULL, " ", &save_ptr) )
+  //      argc++;
+  //if (argc >= ARGC_MAX)
+  //  thread_exit ();
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  // Changed first argv 'file_name' into 'argv[0]'
+  // GG: Changed first argv 'file_name' into 'argv[0]'
   success = load (argv[0], &if_.eip, &if_.esp);
 
-  // Save arguments in stack
+  // GG: Save arguments in stack
   argument_stack (argv, argc, &if_.esp);
+  for (; argc > -1; argc--)
+    free(argv[argc]);
   free(argv);
   hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
 
@@ -110,57 +162,6 @@ start_process (void *file_name_)
      and jump to it. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
-}
-
-// Store arguments in User stack
-void
-argument_stack (char **parse, int count, void **esp)
-{
-  char *argv[count + 1];
-  int i, j;
-
-  argv[count] = 0;
-  // Store argv
-  for (i = count - 1; i > -1; i--)
-  {
-    for (j = strlen(parse[i]); j > -1; j--)
-    {
-      *esp = *esp - 1;
-      **(char **)esp = parse[i][j];
-    }
-    argv[i] = *esp;
-  }
-
-  // word-align
-  for (i = 0; i < (size_t)*esp % 4; i++)
-  {
-    *esp = *esp - 1;
-    **(uint8_t **)esp = 0;
-  }
-
-  // Store *argv address
-  for (i = count; i > -1; i--)
-  {
-    *esp = *esp - sizeof(char *);
-    memcpy(*esp, &argv[i], sizeof(char *));
-    //**(char ***)esp = argv[i];
-  }
-
-  // Store **argv address
-  parse[count] = *esp; // parse[count] used as temporary addr
-  *esp = *esp - sizeof(char **);
-  memcpy(*esp, &parse[count], sizeof(char **));
-  //**(char ***)esp = *esp + sizeof(char **);
-
-  // Store argc
-  *esp = *esp - sizeof(int);
-  memcpy(*esp, &count, sizeof(int));
-  //**(int **)esp = count;
-
-  // Goto return addr
-  *esp = *esp - sizeof(void *);
-  parse[count] = 0;
-  memcpy(*esp, &parse[count], sizeof(void *));
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
