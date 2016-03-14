@@ -28,10 +28,10 @@ get_argument (void *esp, int *arg, int count)
   printf("get argument func call!\n");
   for(i = 0; i < count; i++)
   {
+    esp = esp + 4;
     // TODO: check if *esp address in user memory area
     chec_address(esp);
     arg[i] = *(int *)esp;
-    esp = esp + 4;
   }
 }
 
