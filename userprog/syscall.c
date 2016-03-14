@@ -20,7 +20,16 @@ syscall_handler (struct intr_frame *f UNUSED)
   thread_exit ();
 }
 
-void get_argument (void *esp, int *arg, int count)
+void
+get_argument (void *esp, int *arg, int count)
 {
+  int i = 0;
   printf("get argument func call!\n");
+  for(i = 0; i < count; i++)
+  {
+    // TODO: check if *esp address in user memory area
+    // chec_address(esp);
+    arg[i] = *esp;
+    esp = esp + 4;
+  }
 }
