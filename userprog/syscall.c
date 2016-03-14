@@ -5,6 +5,7 @@
 #include "threads/thread.h"
 
 static void syscall_handler (struct intr_frame *);
+void chec_address (void *addr);
 void get_argument(void *esp, int *arg, int count);
 
 void
@@ -28,8 +29,17 @@ get_argument (void *esp, int *arg, int count)
   for(i = 0; i < count; i++)
   {
     // TODO: check if *esp address in user memory area
-    // chec_address(esp);
+    chec_address(esp);
     arg[i] = *esp;
     esp = esp + 4;
   }
+}
+
+void
+chec_address (void *addr)
+{
+  // TODO: check addr is user memory area
+  // TODO: if invalid access then exit process
+  if (addr < (void*) 0x8048000 || addr > (void*) 0xc0000000)
+    exit(-1);
 }
