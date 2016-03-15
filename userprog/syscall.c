@@ -12,9 +12,6 @@ void exit (int status);
 bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
 
-
-
-
 void
 syscall_init (void)
 {
@@ -130,7 +127,10 @@ halt (void)
 void
 exit(int status)
 {
-
+  // TODO: get current runging thread structure
+  struct thread *t = thread_current ();
+  printf("%s: exit(%d)\n", t->name, status);
+  thread_exit();
 }
 
 bool
