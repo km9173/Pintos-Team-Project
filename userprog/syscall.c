@@ -15,9 +15,6 @@ void exit (int status);
 bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
 
-
-
-
 void
 syscall_init (void)
 {
@@ -123,7 +120,10 @@ chec_address (void *addr)
   // TODO: check addr is user memory area
   // TODO: if invalid access then exit process
   if (addr < (void*) 0x8048000 || addr > (void*) 0xc0000000)
-    printf("TODO: exit(-1) call\n"); //exit(-1);
+  {
+    printf("TODO: exit(-1) call\n");
+    exit(-1);
+  }
 }
 
 void
@@ -135,7 +135,10 @@ halt (void)
 void
 exit(int status)
 {
-
+  // TODO: get current runging thread structure
+  struct thread *t = thread_current ();
+  printf("%s: exit(%d)\n", t->name, status);
+  thread_exit();
 }
 
 bool
@@ -147,5 +150,6 @@ create (const char *file, unsigned initial_size)
 bool
 remove (const char *file)
 {
-
+  bool success = filesys_remove(file);
+  return success;
 }
