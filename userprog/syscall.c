@@ -142,5 +142,6 @@ create (const char *file, unsigned initial_size)
 bool
 remove (const char *file)
 {
-
+  bool success = filesys_remove(file);
+  return success;
 }
