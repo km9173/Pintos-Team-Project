@@ -5,8 +5,15 @@
 #include "threads/thread.h"
 
 static void syscall_handler (struct intr_frame *);
-void chec_address (void *addr);
 void get_argument(void *esp, int *arg, int count);
+void chec_address (void *addr);
+void halt (void);
+void exit (int status);
+bool create (const char *file, unsigned initial_size);
+bool remove (const char *file);
+
+
+
 
 void
 syscall_init (void)
@@ -112,4 +119,28 @@ chec_address (void *addr)
   // TODO: if invalid access then exit process
   if (addr < (void*) 0x8048000 || addr > (void*) 0xc0000000)
     printf("TODO: exit(-1) call\n"); //exit(-1);
+}
+
+void
+halt (void)
+{
+
+}
+
+void
+exit(int status)
+{
+
+}
+
+bool
+create (const char *file, unsigned initial_size)
+{
+
+}
+
+bool
+remove (const char *file)
+{
+
 }
