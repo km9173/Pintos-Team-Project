@@ -3,6 +3,9 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include <devices/shutdown.h>
+#include <threads/thread.h>
+#include <filesys/filesys.h>
 
 static void syscall_handler (struct intr_frame *);
 void get_argument(void *esp, int *arg, int count);
@@ -24,7 +27,7 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED)
 {
-  int status, fd, pid;
+  int status, fd, pid, arg[4];
   char *file;
   void *buffer;
   unsigned size, position;
@@ -39,8 +42,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   {
   //f->eax = return Value;
     case SYS_HALT:
-    //  void halt (void)
-      printf ("syscall_halt!\n");
+      void halt (void);
       break;
     case SYS_EXIT:
     //  void exit (int status)
@@ -55,8 +57,11 @@ syscall_handler (struct intr_frame *f UNUSED)
     */
     case SYS_CREATE:
     //  bool create (const char *file, unsigned initial_size)
+      get_argument(esp, arg, 2);
+      file = arg[0];
+      size = arg[1];
       chec_address(file);
-      printf ("syscall_create!\n");
+      (bool)f->eax = create(file, size);
       break;
     case SYS_REMOVE:
     //  bool remove (const char *file)
@@ -124,7 +129,7 @@ chec_address (void *addr)
 void
 halt (void)
 {
-
+  shutdown_power_off();
 }
 
 void
@@ -136,7 +141,7 @@ exit(int status)
 bool
 create (const char *file, unsigned initial_size)
 {
-
+  return filesys_create(file, initial_size);
 }
 
 bool
