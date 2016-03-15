@@ -115,7 +115,10 @@ chec_address (void *addr)
   // TODO: check addr is user memory area
   // TODO: if invalid access then exit process
   if (addr < (void*) 0x8048000 || addr > (void*) 0xc0000000)
-    printf("TODO: exit(-1) call\n"); //exit(-1);
+  {
+    printf("TODO: exit(-1) call\n");
+    exit(-1);
+  }
 }
 
 void
