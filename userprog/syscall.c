@@ -45,6 +45,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     //  void exit (int status)
       get_argument (f->esp, &status, 1);
       printf ("syscall_exit!\n");
+      exit(status);
       break;
     /*
     case SYS_EXEC:
@@ -62,8 +63,10 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_REMOVE:
     //  bool remove (const char *file)
+      get_argument(esp, file, 2);
       chec_address(file);
       printf ("syscall_remove!\n");
+      (bool)f->eax = remove(file);
       break;
     /*
     case SYS_OPEN:
