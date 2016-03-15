@@ -17,31 +17,77 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED)
 {
+  int status, fd, pid;
+  char *file;
+  void *buffer;
+  unsigned size, position;
+
   // Check if stack pointer is in the user memory area
   chec_address (f->esp);
-  //chec_address (f->esp + 1);
+  //for test
+  get_argument (f->esp, &status, 1);
 
   // Save user stack arguments in kernel
   switch (*(int *)(f->esp))
   {
+  //f->eax = return Value;
     case SYS_HALT:
+    //  void halt (void)
       printf ("syscall_halt!\n");
       break;
     case SYS_EXIT:
+    //  void exit (int status)
+      get_argument (f->esp, &status, 1);
       printf ("syscall_exit!\n");
       break;
+    /*
+    case SYS_EXEC:
+    //  pid_t exec (const char *cmd_line)
+    case SYS_WAIT:
+    //  int wait (pid_t pid)
+    */
     case SYS_CREATE:
+    //  bool create (const char *file, unsigned initial_size)
+      chec_address(file);
       printf ("syscall_create!\n");
       break;
     case SYS_REMOVE:
+    //  bool remove (const char *file)
+      chec_address(file);
       printf ("syscall_remove!\n");
       break;
+    /*
+    case SYS_OPEN:
+      chec_address(file);
+    //  int open (const char *file)
+      break;
+    case SYS_FILESIZE:
+    //  int filesize (int fd)
+      break;
+    case SYS_READ:
+      chec_address(buffer); //I'm not sure whether buffer needs checking
+    //  int read (int fd, void *buffer, unsigned size)
+      break;
+    case SYS_WRITE:
+      chec_address(buffer); //I'm not sure whether buffer needs checking
+    //  int write (int fd, const void *buffer, unsigned size)
+      break;
+    case SYS_SEEK:
+    //  void seek (int fd, unsigned position)
+      break;
+    case SYS_TELL:
+    //  unsigned tell (int fd)
+      break;
+    case SYS_CLOSE:
+    //  void closd (int fd)
+      break;
+    */
     default:
       printf ("system call!\n");
+      thread_exit ();
   }
 
-  //f->eax = return Value;
-  //original code downward
+  // delete when implementation finished
   thread_exit ();
 }
 
@@ -50,7 +96,7 @@ get_argument (void *esp, int *arg, int count)
 {
   int i = 0;
   printf("get argument func call!\n");
-  for(i = 0; i < count; i++)
+  for (i = 0; i < count; i++)
   {
     esp = esp + 4;
     // TODO: check if *esp address in user memory area
