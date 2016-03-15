@@ -17,7 +17,31 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED)
 {
-  printf ("system call!\n");
+  // Check if stack pointer is in the user memory area
+  chec_address (f->esp);
+  //chec_address (f->esp + 1);
+
+  // Save user stack arguments in kernel
+  switch (*(int *)(f->esp))
+  {
+    case SYS_HALT:
+      printf ("syscall_halt!\n");
+      break;
+    case SYS_EXIT:
+      printf ("syscall_exit!\n");
+      break;
+    case SYS_CREATE:
+      printf ("syscall_create!\n");
+      break;
+    case SYS_REMOVE:
+      printf ("syscall_remove!\n");
+      break;
+    default:
+      printf ("system call!\n");
+  }
+
+  //f->eax = return Value;
+  //original code downward
   thread_exit ();
 }
 
