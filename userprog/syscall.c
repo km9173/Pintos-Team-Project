@@ -66,7 +66,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_REMOVE:
     //  bool remove (const char *file)
-      get_argument(esp, file, 2);
+      get_argument(f->esp, file, 2);
       chec_address(file);
       printf ("syscall_remove!\n");
       f->eax = remove(file);
