@@ -15,9 +15,6 @@ void exit (int status);
 bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
 
-
-
-
 void
 syscall_init (void)
 {
@@ -66,7 +63,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_REMOVE:
     //  bool remove (const char *file)
-      get_argument(f->esp, file, 2);
+      get_argument(f->esp, (int*)file, 1);
       chec_address(file);
       printf ("syscall_remove!\n");
       f->eax = remove(file);
