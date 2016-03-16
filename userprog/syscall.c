@@ -15,6 +15,9 @@ void exit (int status);
 bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
 
+
+
+
 void
 syscall_init (void)
 {
@@ -39,13 +42,12 @@ syscall_handler (struct intr_frame *f UNUSED)
   {
   //f->eax = return Value;
     case SYS_HALT:
-      void halt (void);
+      halt ();
       break;
     case SYS_EXIT:
     //  void exit (int status)
       get_argument (f->esp, &status, 1);
       printf ("syscall_exit!\n");
-      exit(status);
       break;
     /*
     case SYS_EXEC:
@@ -55,18 +57,16 @@ syscall_handler (struct intr_frame *f UNUSED)
     */
     case SYS_CREATE:
     //  bool create (const char *file, unsigned initial_size)
-      get_argument(esp, arg, 2);
+      get_argument(f->esp, arg, 2);
       file = arg[0];
       size = arg[1];
       chec_address(file);
-      (bool)f->eax = create(file, size);
+      f->eax = create(file, size);
       break;
     case SYS_REMOVE:
     //  bool remove (const char *file)
-      get_argument(esp, file, 2);
       chec_address(file);
       printf ("syscall_remove!\n");
-      (bool)f->eax = remove(file);
       break;
     /*
     case SYS_OPEN:
@@ -123,10 +123,7 @@ chec_address (void *addr)
   // TODO: check addr is user memory area
   // TODO: if invalid access then exit process
   if (addr < (void*) 0x8048000 || addr > (void*) 0xc0000000)
-  {
-    printf("TODO: exit(-1) call\n");
-    exit(-1);
-  }
+    printf("TODO: exit(-1) call\n"); //exit(-1);
 }
 
 void
@@ -138,10 +135,7 @@ halt (void)
 void
 exit(int status)
 {
-  // TODO: get current runging thread structure
-  struct thread *t = thread_current ();
-  printf("%s: exit(%d)\n", t->name, status);
-  thread_exit();
+
 }
 
 bool
@@ -153,6 +147,5 @@ create (const char *file, unsigned initial_size)
 bool
 remove (const char *file)
 {
-  bool success = filesys_remove(file);
-  return success;
+
 }
