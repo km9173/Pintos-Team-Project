@@ -206,6 +206,14 @@ thread_create (const char *name, int priority,
 
   intr_set_level (old_level);
 
+  // Process hierachy & initialize variables,semaphores,list
+  t->parent = running_thread ();
+  t->memory_load_success = false;
+  t->process_dead = false;
+  sema_init (&t->exit, 0);
+  sema_init (&t->load, 0);
+  list_push_back (&t->parent->children, &t->parent->child); 
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -288,6 +296,7 @@ thread_tid (void)
 void
 thread_exit (void) 
 {
+  struct thread *t = thread_current ();
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
@@ -299,7 +308,11 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
+  // Mark process_dead = true, Then sema_up(parent)
+  ASSERT (t->parent);
+  t->process_dead = true;
+  sema_up (&t->parent->exit);
+  t->status = THREAD_DYING;  // change thread_current () -> t
   schedule ();
   NOT_REACHED ();
 }
@@ -470,6 +483,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+
+  // Initialize child list
+  list_init (&t->children);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

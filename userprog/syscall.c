@@ -128,6 +128,7 @@ void
 exit(int status)
 {
   struct thread *t = thread_current();
+  t->exit_status = status;  // Store exit status in PCB
   printf("%s: exit(%d)\n", t->name, status);
   thread_exit();
 }

@@ -544,3 +544,26 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
+struct thread *
+get_child_process (int pid)
+{
+  struct thread *t = thread_current ();
+  struct list_elem *e;
+  for (e = list_begin (&t->children); e != list_end (&t->children);
+       e = list_next (e))
+  {
+    struct thread *c = list_entry(e, struct thread, child);
+    if (pid == c->tid)
+      return c;
+  }
+  if (e == list_end (&t->children))
+    return NULL;
+}
+
+void
+remove_child_process (struct thread *cp)
+{
+  list_remove (&cp->child);
+  palloc_free_page (cp);
+}
