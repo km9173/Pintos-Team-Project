@@ -31,8 +31,6 @@ syscall_handler (struct intr_frame *f UNUSED)
 
   // Check if stack pointer is in the user memory area
   chec_address (f->esp);
-  //for test
-  get_argument (f->esp, &status, 1);
 
   // Save user stack arguments in kernel
   switch (*(int *)(f->esp))
@@ -42,10 +40,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       halt ();
       break;
     case SYS_EXIT:
-    //  void exit (int status)
       get_argument (f->esp, &status, 1);
-      printf ("syscall_exit!\n");
-      exit(status);
+      exit(status);  // void exit (int status)
       break;
     /*
     case SYS_EXEC:
@@ -54,19 +50,16 @@ syscall_handler (struct intr_frame *f UNUSED)
     //  int wait (pid_t pid)
     */
     case SYS_CREATE:
-    //  bool create (const char *file, unsigned initial_size)
       get_argument(f->esp, arg, 2);
       file = arg[0];
       size = arg[1];
       chec_address(file);
-      f->eax = create(file, size);
+      f->eax = create(file, size);  // bool create (const char *file, unsigned initial_size)
       break;
     case SYS_REMOVE:
-    //  bool remove (const char *file)
       get_argument(f->esp, (int*)file, 1);
       chec_address(file);
-      printf ("syscall_remove!\n");
-      f->eax = remove(file);
+      f->eax = remove(file);  // bool remove (const char *file)
       break;
     /*
     case SYS_OPEN:
@@ -95,7 +88,6 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     */
     default:
-      printf ("system call!\n");
       thread_exit ();
   }
 
@@ -107,12 +99,10 @@ void
 get_argument (void *esp, int *arg, int count)
 {
   int i = 0;
-  printf("get argument func call!\n");
   for (i = 0; i < count; i++)
   {
     esp = esp + 4;
-    // TODO: check if *esp address in user memory area
-    chec_address(esp);
+    chec_address(esp);  // Check if *esp address in user memory area
     arg[i] = *(int *)esp;
   }
 }
@@ -120,8 +110,7 @@ get_argument (void *esp, int *arg, int count)
 void
 chec_address (void *addr)
 {
-  // TODO: check addr is user memory area
-  // TODO: if invalid access then exit process
+  // Check addr is user memory area, If invalid access then exit process
   if (addr < (void*) 0x8048000 || addr > (void*) 0xc0000000)
   {
     printf("TODO: exit(-1) call\n");

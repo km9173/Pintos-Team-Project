@@ -67,9 +67,8 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
-  // Variables for parsing
-  int argc = 0, i = 0;
-  char **argv, *save_ptr, temp = ' '; // To check if first char is ' '
+  int argc = 0, i = 0;  // Variables for parsing
+  char **argv, *save_ptr, temp = ' ';  // To check if first char is ' '
 
   for (i = 0; file_name[i] != '\0'; i++)
   {
