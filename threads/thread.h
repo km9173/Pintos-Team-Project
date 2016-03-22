@@ -97,9 +97,20 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
+    
+    // Implement process hierarchy
+    struct thread *parent;              /* Parent process descriptor. */
+    struct list children;               /* List of child process. */
+    struct list_elem child;             /* Child process element. */
+    bool memory_load_success;           /* Check if process creation success. */
+    bool process_dead;                  /* Check if process dead. */
+    semaphore exit;                     /* Wait semaphore. */
+    semaphore load;                     /* Exit semaphore. */
+    int exit_status;                    /* Exit status. */
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
   };
 
 /* If false (default), use round-robin scheduler.
@@ -137,5 +148,8 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+// Process hierarchy
+
 
 #endif /* threads/thread.h */
