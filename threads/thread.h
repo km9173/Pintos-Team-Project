@@ -104,8 +104,8 @@ struct thread
     struct list_elem child;             /* Child process element. */
     bool memory_load_success;           /* Check if process creation success. */
     bool process_dead;                  /* Check if process dead. */
-    struct semaphore exit;              /* Wait semaphore. */
-    struct semaphore load;              /* Exit semaphore. */
+    struct semaphore load;              /* Wait semaphore. */
+    struct semaphore exit;              /* Exit semaphore. */
     int exit_status;                    /* Exit status. */
 
     /* Owned by thread.c. */
