@@ -21,6 +21,7 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack (char **parse, int count, void **esp);
+struct thread* get_child_process (int pid);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -187,12 +188,7 @@ process_wait (tid_t child_tid UNUSED)
   if (child_process == NULL)
     return -1;
 
-  while (!child_process->exit)
-  {
-    // this function enable to infinity loop
-    // A.3.5 in https://web.stanford.edu/class/cs140/projects/pintos/pintos_6.html
-    barrier();
-  }
+  sema_down(&(t->load));
 
   status = child_process->exit_status;
   remove_child_process(child_process);
