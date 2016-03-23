@@ -179,7 +179,25 @@ argument_stack (char **parse, int count, void **esp)
 int
 process_wait (tid_t child_tid UNUSED)
 {
-  return -1;
+  int status;
+  struct thread *t = current_thread();
+  struct thread *child_process;
+
+  child_process = get_child_process(child_tid);
+  if (child_process == NULL)
+    return -1;
+
+  while (!child_process->exit)
+  {
+    // this function enable to infinity loop
+    // A.3.5 in https://web.stanford.edu/class/cs140/projects/pintos/pintos_6.html
+    barrier();
+  }
+
+  status = child_process->exit_status;
+  remove_child_process(child_process);
+
+  return status;
 }
 
 /* Free the current process's resources. */
