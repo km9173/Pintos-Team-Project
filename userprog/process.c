@@ -181,7 +181,7 @@ int
 process_wait (tid_t child_tid UNUSED)
 {
   int status;
-  struct thread *t = current_thread();
+  struct thread *t = thread_current ();
   struct thread *child_process;
 
   child_process = get_child_process(child_tid);
