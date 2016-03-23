@@ -43,12 +43,14 @@ syscall_handler (struct intr_frame *f UNUSED)
       get_argument (f->esp, &status, 1);
       exit(status);  // void exit (int status)
       break;
-    /*
     case SYS_EXEC:
-    //  pid_t exec (const char *cmd_line)
+      get_argument (f->esp, arg, 1);
+      exec (const char *cmd_line);
+      break;
     case SYS_WAIT:
-    //  int wait (pid_t pid)
-    */
+      get_argument (f->esp, &pid, 1);
+      wait (pid);
+      break;
     case SYS_CREATE:
       get_argument(f->esp, arg, 2);
       file = arg[0];
