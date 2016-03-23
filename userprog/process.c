@@ -69,6 +69,7 @@ start_process (void *file_name_)
   bool success;
   int argc = 0, i = 0;  // Variables for parsing
   char **argv, *save_ptr, temp = ' ';  // To check if first char is ' '
+  struct thread *t = thread_current();
 
   for (i = 0; file_name[i] != '\0'; i++)
   {
@@ -91,6 +92,10 @@ start_process (void *file_name_)
   // Changed first argv 'file_name' into 'argv[0]'
   success = load (argv[0], &if_.eip, &if_.esp);
 
+  // if load is successful, then semaphore up in parent process load semaphore.
+  if (success)
+    sema_up(&(t->parent->load));
+
   // Save arguments in stack
   argument_stack (argv, argc, &if_.esp);
   free(argv);
@@ -99,7 +104,12 @@ start_process (void *file_name_)
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success)
+  {
+    // thread struct 초기화 할때 default 로 false 값주면 어떨지?
+    t->memory_load_success = false;
     thread_exit ();
+  }
+  t->memory_load_success = true;
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
