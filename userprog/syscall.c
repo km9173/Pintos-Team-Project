@@ -45,7 +45,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_EXEC:
       get_argument (f->esp, arg, 1);
-      exec (const char *cmd_line);
+      exec (arg[0]);
       break;
     case SYS_WAIT:
       get_argument (f->esp, &pid, 1);
@@ -135,7 +135,7 @@ exit (int status)
   thread_exit();
 }
 
-pid_t
+tid_t
 exec (const *cmd_line)
 {
   tid_t pid;
