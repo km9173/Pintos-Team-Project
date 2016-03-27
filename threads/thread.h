@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/synch.h"
+#include "filesys/file.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -115,7 +116,7 @@ struct thread
 
     // File Descriptor Table
     struct file *fd_table[FD_MAX];      /* File Descriptor Table. */
-    int fd;                             /* File Descriptor Size */
+    int fd_size;                        /* File Descriptor Size */
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
