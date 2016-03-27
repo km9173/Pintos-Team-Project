@@ -88,8 +88,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 
     case SYS_READ:
       // chec_address(buffer); //I'm not sure whether buffer needs checking
-      // TODO: 파일에 접근하기 전에 lock 획득 기능 추가
-      lock_acquire(&filesys_lock);
+
       // int read (int fd, void *buffer, unsigned size)
       // TODO: 파일에 대한 접근이 끝난뒤 lock 해제
       lock_release(&filesys_lock);
@@ -208,6 +207,9 @@ open (const char *file)
 
   if (_file == NULL)
     return -1;
+
+  while(t->fd_tabe[fd] != NULL)
+    fd++;
 
   t->fd_table[fd] = _file;
   t->fd_size++;
