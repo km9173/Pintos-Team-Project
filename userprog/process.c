@@ -201,7 +201,12 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
-  uint32_t *pd;
+  uint32_t *pd, fd;
+
+  // close all fd, but since fd_array[] is NOT dynamically allocated,
+  // pagedir_destroy () will destroy fd_array[].
+  for (fd = 2; fd < cur->fd_size; fd++)
+    process_close_file (fd);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -604,13 +609,21 @@ process_add_file (struct file *f)
 }
 
 struct file *
-process_close_file (int fd)
+process_get_file (int fd)
 {
-
+  struct file *t = thread_current ();
+  if (fd < FD_MIN || fd >= t->fd_size)
+    return NULL;
+  else
+    return t->fd_table[fd];
 }
 
 void
-process_exit ()
+process_close_file (int fd)
 {
-
+  struct file *t = thread_current ();
+  if (fd < FD_MIN || fd >= t->fd_size)
+    return;
+  file_close (t->fd_table[fd]);
+  t->fd_table[fd] = NULL;
 }
