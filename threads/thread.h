@@ -25,6 +25,10 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+/* File Descriptor */
+#define FD_MIN 2
+#define FD_MAX 128
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -110,7 +114,8 @@ struct thread
     int exit_status;                    /* Exit status. */
 
     // File Descriptor Table
-    struct file *fd_table[128];             /*File Descriptor Table. */
+    struct file *fd_table[FD_MAX];      /* File Descriptor Table. */
+    int fd;                             /* File Descriptor Size */
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
