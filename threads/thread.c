@@ -219,6 +219,7 @@ thread_create (const char *name, int priority,
   // TODO: File Descriptor table 에 메모리 할당
   // 이미 정적 할당을 해놔서 상관없을거 같기도..
   // std i/o fd를 초기화해야되는지를 알아야함
+  // TODO: thread.h 에서 NULL로 바로 초기화하는게 가능한지? (header 파일에서의 초기화)
   for (i = 0; i < FD_MAX; i++)
     t->fd_table[i] = NULL;
 
