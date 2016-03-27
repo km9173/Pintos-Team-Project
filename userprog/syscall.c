@@ -19,6 +19,7 @@ void
 syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&filesys_lock);
 }
 
 static void
@@ -81,15 +82,19 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_READ:
       // chec_address(buffer); //I'm not sure whether buffer needs checking
       // TODO: 파일에 접근하기 전에 lock 획득 기능 추가
+      lock_acquire(&filesys_lock);
       // int read (int fd, void *buffer, unsigned size)
       // TODO: 파일에 대한 접근이 끝난뒤 lock 해제
+      lock_release(&filesys_lock);
       break;
 
     case SYS_WRITE:
       // chec_address(buffer); //I'm not sure whether buffer needs checking
       // TODO: 파일에 접근하기 전에 lock 획득 기능 추가
+      lock_acquire(&filesys_lock);
       // int write (int fd, const void *buffer, unsigned size)
       // TODO: 파일에 대한 접근이 끝난뒤 lock 해제
+      lock_release(&filesys_lock);
       break;
 
     case SYS_SEEK:
