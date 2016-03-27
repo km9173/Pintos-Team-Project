@@ -98,7 +98,7 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
-    
+
     // Implement process hierarchy
     struct thread *parent;              /* Parent process descriptor. */
     struct list children;               /* List of child process. */
@@ -108,6 +108,9 @@ struct thread
     struct semaphore load;              /* Wait semaphore. */
     struct semaphore exit;              /* Exit semaphore. */
     int exit_status;                    /* Exit status. */
+
+    // File Descriptor Table
+    struct file *fd_table[128];             /*File Descriptor Table. */
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
