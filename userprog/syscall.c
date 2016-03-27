@@ -226,7 +226,30 @@ filesize (int fd)
 int
 read (int fd, void *buffer, unsigned size)
 {
+  struct thread *t = thread_current();
+  struct file *file = &(t->fd_table[fd]);
+  int i = 0;
+  char key;
 
+  // TODO: 파일에 접근하기 전에 lock 획득 기능 추가
+  // 만약 lock을 획득할수 없다면 어떻게 되는거지 ..
+  // 심지어 lock_acquire 반환값도 없음..
+  lock_acquire(&filesys_lock);
+
+  if (fd == 0)
+  {
+    while((key = input_getc()) != '\r')
+    {
+      buffer[i] = key;
+      i++;
+    }
+    // TODO: 문자열 맨마지막에 '\0'를 넣어야하나?
+    return i;
+  }
+
+  // TODO: 읽기 실패시 -1 반환 부분을 어디서 구현할지..
+  else
+    return file_read(file, buffer, size);
 }
 
 int
