@@ -191,3 +191,18 @@ remove (const char *file)
   bool success = filesys_remove(file);
   return success;
 }
+
+int open (const char *file)
+{
+  struct thread *t = thread_current();
+  struct file *_file = filesys_open(file);
+  int fd = t->fd_size;
+
+  if (_file == NULL)
+    return -1;
+
+  t->fd_table[fd] = _file;
+  t->fd_size++;
+  
+  return fd;
+}
