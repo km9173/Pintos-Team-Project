@@ -39,18 +39,22 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_HALT:
       halt ();
       break;
+
     case SYS_EXIT:
       get_argument (f->esp, &status, 1);
       exit(status);  // void exit (int status)
       break;
+
     case SYS_EXEC:
       get_argument (f->esp, arg, 1);
       exec (arg[0]);
       break;
+
     case SYS_WAIT:
       get_argument (f->esp, &pid, 1);
       wait (pid);
       break;
+
     case SYS_CREATE:
       get_argument(f->esp, arg, 2);
       file = arg[0];
@@ -58,37 +62,48 @@ syscall_handler (struct intr_frame *f UNUSED)
       chec_address(file);
       f->eax = create(file, size);  // bool create (const char *file, unsigned initial_size)
       break;
+
     case SYS_REMOVE:
       get_argument(f->esp, (int*)file, 1);
       chec_address(file);
       f->eax = remove(file);  // bool remove (const char *file)
       break;
-    /*
+
     case SYS_OPEN:
-      chec_address(file);
-    //  int open (const char *file)
+      // chec_address(file);
+      // int open (const char *file)
       break;
+
     case SYS_FILESIZE:
-    //  int filesize (int fd)
+      //  int filesize (int fd)
       break;
+
     case SYS_READ:
-      chec_address(buffer); //I'm not sure whether buffer needs checking
-    //  int read (int fd, void *buffer, unsigned size)
+      // chec_address(buffer); //I'm not sure whether buffer needs checking
+      // TODO: 파일에 접근하기 전에 lock 획득 기능 추가
+      // int read (int fd, void *buffer, unsigned size)
+      // TODO: 파일에 대한 접근이 끝난뒤 lock 해제
       break;
+
     case SYS_WRITE:
-      chec_address(buffer); //I'm not sure whether buffer needs checking
-    //  int write (int fd, const void *buffer, unsigned size)
+      // chec_address(buffer); //I'm not sure whether buffer needs checking
+      // TODO: 파일에 접근하기 전에 lock 획득 기능 추가
+      // int write (int fd, const void *buffer, unsigned size)
+      // TODO: 파일에 대한 접근이 끝난뒤 lock 해제
       break;
+
     case SYS_SEEK:
-    //  void seek (int fd, unsigned position)
+      // void seek (int fd, unsigned position)
       break;
+
     case SYS_TELL:
-    //  unsigned tell (int fd)
+      // unsigned tell (int fd)
       break;
+
     case SYS_CLOSE:
-    //  void closd (int fd)
+      // void closd (int fd)
       break;
-    */
+
     default:
       thread_exit ();
   }
