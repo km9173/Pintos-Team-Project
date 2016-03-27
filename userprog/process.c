@@ -595,7 +595,12 @@ remove_child_process (struct thread *cp)
 int
 process_add_file (struct file *f)
 {
+  struct thread *t = thread_current();
+  int fd = t->fd_size;
+  t->fd_table[t->fd_size] = f;
+  t->fd_size++;
 
+  return fd;
 }
 
 struct file *
@@ -607,5 +612,5 @@ process_close_file (int fd)
 void
 process_exit ()
 {
-  
+
 }
