@@ -208,7 +208,7 @@ open (const char *file)
   if (_file == NULL)
     return -1;
 
-  while(t->fd_tabe[fd] != NULL)
+  while(t->fd_table[fd] != NULL)
     fd++;
 
   t->fd_table[fd] = _file;
@@ -227,7 +227,7 @@ int
 read (int fd, void *buffer, unsigned size)
 {
   struct thread *t = thread_current();
-  struct file *file = &(t->fd_table[fd]);
+  struct file *file = t->fd_table[fd];
   int i = 0;
   char key;
 
@@ -240,7 +240,7 @@ read (int fd, void *buffer, unsigned size)
   {
     while((key = input_getc()) != '\r')
     {
-      buffer[i] = key;
+      ((char*)buffer)[i] = key;
       i++;
     }
     // TODO: 문자열 맨마지막에 '\0'를 넣어야하나?
@@ -268,9 +268,9 @@ unsigned
 tell (int fd)
 {
   struct thread *t = thread_current();
-  struct file *file = &(t->fd_table[fd]);
+  struct file *_file = t->fd_table[fd];
 
-  return file->pos;
+  return _file->pos;
 }
 
 void
