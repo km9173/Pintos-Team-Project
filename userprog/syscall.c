@@ -267,11 +267,18 @@ seek (int fd, unsigned position)
 unsigned
 tell (int fd)
 {
+  struct thread *t = thread_current();
+  struct file *file = &(t->fd_table[fd]);
 
+  return file->pos;
 }
 
 void
 close (int fd)
 {
+  struct thread *t = thread_current();
 
+  process_close_file(fd);
+  t->fd_table[fd] = NULL;
+  t->fd_size--;
 }
