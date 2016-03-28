@@ -232,8 +232,9 @@ filesize (int fd)
 int
 read (int fd, void *buffer, unsigned size)
 {
-  struct thread *t = thread_current();
-  struct file *file = t->fd_table[fd];
+  // struct thread *t = thread_current();
+  // struct file *file = t->fd_table[fd];
+  struct file *file = process_get_file(fd);
   int i = 0;
   char key;
 
@@ -288,17 +289,19 @@ void
 seek (int fd, unsigned position)
 {
   struct file *f = process_get_file (fd);
-  
+
   file_seek (f, position);
 }
 
 unsigned
 tell (int fd)
 {
-  struct thread *t = thread_current();
-  struct file *_file = t->fd_table[fd];
+  struct file *file = process_get_file(fd);
+  // struct thread *t = thread_current();
+  // struct file *_file = t->fd_table[fd];
 
-  return _file->pos;
+  //return file->pos;
+  return 1;
 }
 
 void
