@@ -99,11 +99,13 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_TELL:
-      // unsigned tell (int fd)
+      get_argument(f->esp, &fd, 1);
+      f->eax = tell(fd);
       break;
 
     case SYS_CLOSE:
-      // void closd (int fd)
+      get_argument(f->esp, &fd, 1);
+      close(fd);
       break;
 
     default:
@@ -194,7 +196,7 @@ open (const char *file)
 {
   struct thread *t = thread_current();
   struct file *_file = filesys_open(file);
-  int fd = t->fd_size;
+  int fd = FD_MIN;
 
   if (_file == NULL)
     return -1;
