@@ -14,6 +14,7 @@
 #include "threads/flags.h"
 #include "threads/init.h"
 #include "threads/interrupt.h"
+#include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
@@ -32,7 +33,7 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
   // Variables for parsing
-  char *fn = NULL, *save_ptr;
+  char *fn = (char *)file_name, *save_ptr;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -42,7 +43,7 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   // Parse the first token which will be file_name
-  fn = strtok_r (file_name, " ", &save_ptr);
+  fn = strtok_r (fn, " ", &save_ptr);
 
   // check name is NULL. if NULL then return error
   if (fn == NULL)
@@ -99,7 +100,6 @@ start_process (void *file_name_)
   // Save arguments in stack
   argument_stack (argv, argc, &if_.esp);
   free(argv);
-  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -141,7 +141,7 @@ argument_stack (char **parse, int count, void **esp)
   }
 
   // word-align
-  for (i = 0; i < (size_t)*esp % 4; i++)
+  for (i = 0; i < (int)*esp % 4; i++)
   {
     *esp = *esp - 1;
     **(uint8_t **)esp = 0;
@@ -200,7 +200,8 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
-  uint32_t *pd, fd;
+  uint32_t *pd;
+  int fd;
 
   // close all fd, but since fd_array[] is NOT dynamically allocated,
   // pagedir_destroy () will destroy fd_array[].
@@ -576,17 +577,15 @@ install_page (void *upage, void *kpage, bool writable)
 struct thread *
 get_child_process (int pid)
 {
-  struct thread *t = thread_current ();
+  struct thread *t = thread_current (), *c;
   struct list_elem *e;
-  for (e = list_begin (&t->children); e != list_end (&t->children);
-       e = list_next (e))
+  for (e = list_begin (&t->children); e != list_end (&t->children); e = list_next (e))
   {
-    struct thread *c = list_entry(e, struct thread, child);
+    c = list_entry(e, struct thread, child);
     if (pid == c->tid)
       return c;
   }
-  if (e == list_end (&t->children))
-    return NULL;
+  return NULL;
 }
 
 void
