@@ -102,7 +102,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       buffer = (void*)arg[1];
       size = arg[2];
       chec_address(buffer + size);
-      write (fd, *buffer, size);
+      write (fd, (const void *)buffer, size);
       break;
 
     case SYS_SEEK:
