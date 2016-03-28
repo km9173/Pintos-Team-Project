@@ -54,7 +54,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 
     case SYS_CREATE:
       get_argument(f->esp, arg, 2);
-      file = arg[0];
+      file = (char *)arg[0];
       size = arg[1];
       chec_address(file);
       f->eax = create(file, size);  // bool create (const char *file, unsigned initial_size)
