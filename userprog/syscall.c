@@ -65,8 +65,9 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_OPEN:
-      // chec_address(file);
-      // int open (const char *file)
+      get_argument(f->esp, (int*)file, 1);
+      chec_address(file);
+      f->eax = open((const char *)file);
       break;
 
     case SYS_FILESIZE:
