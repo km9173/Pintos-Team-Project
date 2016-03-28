@@ -160,7 +160,7 @@ exit (int status)
 }
 
 tid_t
-exec (const *cmd_line)
+exec (const char *cmd_line)
 {
   tid_t pid;
   struct thread *child_process;

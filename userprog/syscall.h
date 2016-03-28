@@ -12,7 +12,7 @@ bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
 // project_3
 void exit (int status);
-tid_t exec (const *cmd_line);
+tid_t exec (const char *cmd_line);
 int wait (tid_t);
 // project_4
 int open (const char *file);
