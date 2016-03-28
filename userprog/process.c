@@ -187,7 +187,7 @@ process_wait (tid_t child_tid UNUSED)
   if (child_process == NULL)
     return -1;
 
-  sema_down(&(t->load));
+  sema_down(&(t->exit));
 
   status = child_process->exit_status;
   remove_child_process(child_process);
