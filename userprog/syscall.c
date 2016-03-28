@@ -83,24 +83,26 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_FILESIZE:
-      //  int filesize (int fd)
+      get_argument(f->esp, &fd, 1);
+      f->eax = filesize (fd);
       break;
 
     case SYS_READ:
       // chec_address(buffer); //I'm not sure whether buffer needs checking
-
+      // TODO: 파일에 접근하기 전에 lock 획득 기능 추가
+      lock_acquire(&filesys_lock);
       // int read (int fd, void *buffer, unsigned size)
       // TODO: 파일에 대한 접근이 끝난뒤 lock 해제
       lock_release(&filesys_lock);
       break;
 
     case SYS_WRITE:
-      // chec_address(buffer); //I'm not sure whether buffer needs checking
-      // TODO: 파일에 접근하기 전에 lock 획득 기능 추가
-      lock_acquire(&filesys_lock);
-      // int write (int fd, const void *buffer, unsigned size)
-      // TODO: 파일에 대한 접근이 끝난뒤 lock 해제
-      lock_release(&filesys_lock);
+      get_argument(f->esp, arg, 3);
+      fd = arg[0];
+      buffer = (void*)arg[1];
+      size = arg[2];
+      chec_address(buffer + size);
+      write (fd, *buffer, size);
       break;
 
     case SYS_SEEK:
@@ -220,7 +222,11 @@ open (const char *file)
 int
 filesize (int fd)
 {
-
+  struct file *f = process_get_file (fd);
+  if (!f)
+    return -1;
+  else
+    return file_length (f);
 }
 
 int
@@ -255,13 +261,35 @@ read (int fd, void *buffer, unsigned size)
 int
 write (int fd, void *buffer, unsigned size)
 {
+  struct file *f = process_get_file (fd);
 
+  lock_acquire (&filesys_lock);
+
+  if (fd == 1)
+  {
+    putbuf ((char *)buffer, size);
+    return size;
+  }
+  else
+  {
+    if (f)
+    {
+      file_write (f, buffer, size);
+      return size;
+    }
+    else
+      return -1;
+  }
+
+  lock_release (&filesys_lock);
 }
 
 void
 seek (int fd, unsigned position)
 {
-
+  struct file *f = process_get_file (fd);
+  
+  file_seek (f, position);
 }
 
 unsigned
@@ -279,6 +307,5 @@ close (int fd)
   struct thread *t = thread_current();
 
   process_close_file(fd);
-  t->fd_table[fd] = NULL;
   t->fd_size--;
 }
