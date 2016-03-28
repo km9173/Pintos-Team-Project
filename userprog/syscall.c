@@ -8,6 +8,8 @@
 #include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *);
+void get_argument(void *esp, int *arg, int count);
+void chec_address (void *addr);
 
 void
 syscall_init (void)
@@ -84,16 +86,19 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_WRITE:
-      get_argument(f->esp, arg, 3);
+      get_argument (f->esp, arg, 3);
       fd = arg[0];
       buffer = (void*)arg[1];
       size = arg[2];
-      chec_address(buffer + size);
-      write (fd, (const void *)buffer, size);
+      chec_address (buffer + size);
+      f->eax = write (fd, (const void *)buffer, size);
       break;
 
     case SYS_SEEK:
-      // void seek (int fd, unsigned position)
+      get_argument (f->esp, arg, 2);
+      fd = arg[0];
+      position = arg[1];
+      seek (fd, position);
       break;
 
     case SYS_TELL:
@@ -101,7 +106,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_CLOSE:
-      // void closd (int fd)
+      get_argument(f->esp, &fd, 1);
+      close (fd);
       break;
 
     default:
