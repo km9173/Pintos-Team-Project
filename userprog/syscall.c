@@ -22,7 +22,7 @@ static void
 syscall_handler (struct intr_frame *f UNUSED)
 {
   int status, fd, pid, arg[4];
-  char *file;
+  char *file = NULL;
   void *buffer;
   unsigned size, position;
 
