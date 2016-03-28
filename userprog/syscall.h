@@ -3,6 +3,8 @@
 
 #include "threads/synch.h"
 
+typedef int pid_t;
+
 struct lock filesys_lock;
 
 void syscall_init (void);
@@ -12,8 +14,8 @@ bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
 // project_3
 void exit (int status);
-tid_t exec (const char *cmd_line);
-int wait (tid_t);
+pid_t exec (const char *cmd_line);
+int wait (pid_t);
 // project_4
 int open (const char *file);
 int filesize (int fd);
