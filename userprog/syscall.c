@@ -159,10 +159,10 @@ exit (int status)
   thread_exit();
 }
 
-tid_t
+pid_t
 exec (const char *cmd_line)
 {
-  tid_t pid;
+  pid_t pid;
   struct thread *child_process;
   struct thread *t = thread_current();
 
@@ -178,9 +178,9 @@ exec (const char *cmd_line)
 }
 
 int
-wait (tid_t tid)
+wait (pid_t pid)
 {
-  return process_wait(tid);
+  return process_wait(pid);
 }
 
 bool
