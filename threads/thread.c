@@ -98,6 +98,10 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
+  // initialize init_thread (main thread) semaphore (exit, load)
+  sema_init (&initial_thread->exit, 0);
+  sema_init (&initial_thread->load, 0);
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
