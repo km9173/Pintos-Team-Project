@@ -4,8 +4,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include <devices/shutdown.h>
-#include <threads/thread.h>
 #include <filesys/filesys.h>
+#include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *);
 void get_argument(void *esp, int *arg, int count);

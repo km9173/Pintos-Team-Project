@@ -611,7 +611,7 @@ process_add_file (struct file *f)
 struct file *
 process_get_file (int fd)
 {
-  struct file *t = thread_current ();
+  struct thread *t = thread_current ();
   if (fd < FD_MIN || fd >= t->fd_size)
     return NULL;
   else
@@ -621,7 +621,7 @@ process_get_file (int fd)
 void
 process_close_file (int fd)
 {
-  struct file *t = thread_current ();
+  struct thread *t = thread_current ();
   if (fd < FD_MIN || fd >= t->fd_size)
     return;
   file_close (t->fd_table[fd]);
