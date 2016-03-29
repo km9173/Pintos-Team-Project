@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <list.h>
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
@@ -95,7 +96,7 @@ start_process (void *file_name_)
 
   // if load is successful, then semaphore up in parent process load semaphore.
   if (success)
-    sema_up(&(t->parent->load));
+    sema_up(&(thread_current()->load));
 
   // Save arguments in stack
   argument_stack (argv, argc, &if_.esp);
@@ -106,10 +107,10 @@ start_process (void *file_name_)
   if (!success)
   {
     // thread struct 초기화 할때 default 로 false 값주면 어떨지?
-    t->memory_load_success = false;
+    thread_current()->memory_load_success = false;
     thread_exit ();
   }
-  t->memory_load_success = true;
+  thread_current()->memory_load_success = true;
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -187,8 +188,7 @@ process_wait (tid_t child_tid UNUSED)
   if (child_process == NULL)
     return -1;
 
-  sema_down(&(t->exit));
-
+  sema_down(&thread_current()->exit);
   status = child_process->exit_status;
   remove_child_process(child_process);
 
@@ -579,11 +579,12 @@ get_child_process (int pid)
 {
   struct thread *t = thread_current (), *c;
   struct list_elem *e;
-  for (e = list_begin (&t->children); e != list_end (&t->children); e = list_next (e))
+  for (e = list_begin (&thread_current ()->children);
+       e != list_end (&thread_current ()->children);
+       e = list_next (e))
   {
-    c = list_entry(e, struct thread, child);
-    if (pid == c->tid)
-      return c;
+    if (pid == list_entry(e, struct thread, child)->tid)
+      return list_entry(e, struct thread, child);
   }
   return NULL;
 }
