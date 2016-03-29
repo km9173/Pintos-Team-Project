@@ -204,12 +204,13 @@ open (const char *file)
   if (_file == NULL)
     return -1;
 
-  while(thread_current()->fd_table[fd])
+  while(t->fd_table[fd])
     fd++;
-  thread_current()->fd_table[fd] = _file;
 
-  if (fd == thread_current()->fd_size)
-    thread_current()->fd_size++;
+  t->fd_table[fd] = _file;
+
+  if (fd == t->fd_size)
+    t->fd_size++;
 
   return fd;
 }
