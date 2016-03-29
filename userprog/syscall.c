@@ -138,10 +138,7 @@ chec_address (void *addr)
 {
   // Check addr is user memory area, If invalid access then exit process
   if (addr < (void*) 0x8048000 || addr > (void*) 0xc0000000)
-  {
-    printf("TODO: exit(-1) call\n");
     exit(-1);
-  }
 }
 
 void
@@ -186,6 +183,9 @@ wait (pid_t pid)
 bool
 create (const char *file, unsigned initial_size)
 {
+  if (file == NULL)
+    exit(-1);
+
   return filesys_create(file, initial_size);
 }
 
