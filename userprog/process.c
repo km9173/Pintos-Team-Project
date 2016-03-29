@@ -142,7 +142,7 @@ argument_stack (char **parse, int count, void **esp)
   }
 
   // word-align
-  for (i = 0; i < (int)*esp % 4; i++)
+  for (i = 0; i < (size_t)*esp % 4; i++)
   {
     *esp = *esp - 1;
     **(uint8_t **)esp = 0;
