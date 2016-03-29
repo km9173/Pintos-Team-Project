@@ -203,16 +203,21 @@ int
 open (const char *file)
 {
   struct thread *t = thread_current();
-  struct file *_file = filesys_open(file);
+  struct file *f = NULL;
   int fd = FD_MIN;
 
-  if (_file == NULL)
+  if (file == NULL)
+    return -1;
+
+  f = filesys_open(file);
+
+  if (f == NULL)
     return -1;
 
   while(t->fd_table[fd])
     fd++;
 
-  t->fd_table[fd] = _file;
+  t->fd_table[fd] = f;
 
   if (fd == t->fd_size)
     t->fd_size++;
