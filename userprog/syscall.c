@@ -166,9 +166,9 @@ exec (const char *cmd_line)
   pid = process_execute(cmd_line);
   child_process = get_child_process(pid);
 
-  sema_down(&(t->load));
+  sema_down(&child_process->load);
 
-  if (!t->memory_load_success)
+  if (!child_process->memory_load_success)
     return -1;
 
   return pid;
