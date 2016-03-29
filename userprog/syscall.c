@@ -164,11 +164,12 @@ exec (const char *cmd_line)
 {
   pid_t pid;
   struct thread *child_process;
+  struct thread *t = thread_current();
 
   pid = process_execute(cmd_line);
   child_process = get_child_process(pid);
 
-  sema_down(&child_process->load);
+  sema_down(&t->load);
 
   if (!child_process->memory_load_success)
     return -1;
