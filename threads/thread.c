@@ -98,6 +98,8 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  sema_init (&initial_thread->exit, 0);
+  sema_init (&initial_thread->load, 0);
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -213,7 +215,7 @@ thread_create (const char *name, int priority,
   t->process_dead = false;
   sema_init (&t->exit, 0);
   sema_init (&t->load, 0);
-  list_push_back (&t->parent->children, &t->parent->child);
+  list_push_back (&thread_current ()->children, &t->child);
 
   // File Descriptor initialize
   t->fd_size = 2;
@@ -317,12 +319,12 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
-  list_remove (&thread_current()->allelem);
+  list_remove (&thread_current ()->allelem);
   // Mark process_dead = true, Then sema_up(parent)
-  ASSERT (t->parent);
-  t->process_dead = true;
-  sema_up (&t->parent->exit);
-  t->status = THREAD_DYING;  // change thread_current () -> t
+  thread_current ()->process_dead = true;
+  if (thread_current ()->parent)
+    sema_up (&thread_current ()->parent->exit);
+  thread_current()->status = THREAD_DYING;  // change thread_current () -> t
   schedule ();
   NOT_REACHED ();
 }

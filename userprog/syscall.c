@@ -118,7 +118,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   }
 
   // delete when implementation finished
-  thread_exit ();
+  //thread_exit ();
 }
 
 void
