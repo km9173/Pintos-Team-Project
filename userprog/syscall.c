@@ -4,6 +4,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include <devices/shutdown.h>
+#include "devices/input.h"
 #include "filesys/filesys.h"
 #include "userprog/process.h"
 
@@ -44,7 +45,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 
     case SYS_EXEC:
       get_argument (f->esp, arg, 1);
-      exec (arg[0]);
+      exec ((const char *)arg[0]);
       break;
 
     case SYS_WAIT:
@@ -84,7 +85,6 @@ syscall_handler (struct intr_frame *f UNUSED)
       size = arg[2];
       chec_address(buffer + size);
       f->eax = read(fd, buffer, size);
-      lock_release(&filesys_lock);
       break;
 
     case SYS_WRITE:
@@ -228,57 +228,60 @@ filesize (int fd)
 int
 read (int fd, void *buffer, unsigned size)
 {
-  // struct thread *t = thread_current();
-  // struct file *file = t->fd_table[fd];
-  struct file *file = process_get_file(fd);
-  int i = 0;
-  char key;
+  struct file *file = NULL;
+  unsigned i = 0;
+  int read_size = 0;
 
-  // TODO: 파일에 접근하기 전에 lock 획득 기능 추가
-  // 만약 lock을 획득할수 없다면 어떻게 되는거지 ..
-  // 심지어 lock_acquire 반환값도 없음..
-  lock_acquire(&filesys_lock);
-
-  if (fd == 0)
+  if (fd == STDIN_FILENO)
   {
-    while((key = input_getc()) != '\r')
+    for(i = 0; i < size; i++)
     {
-      ((char*)buffer)[i] = key;
-      i++;
+      ((char*)buffer)[i] = input_getc();
     }
-    // TODO: 문자열 맨마지막에 '\0'를 넣어야하나?
-    return i;
+    read_size = size;
   }
 
-  // TODO: 읽기 실패시 -1 반환 부분을 어디서 구현할지..
   else
-    return file_read(file, buffer, size);
+  {
+    lock_acquire(&filesys_lock);
+    file = process_get_file(fd);
+
+    if (file == NULL)
+      read_size = -1;
+    else
+      read_size = file_read(file, buffer, size);
+
+    lock_release(&filesys_lock);
+  }
+  return read_size;
 }
 
 int
 write (int fd, void *buffer, unsigned size)
 {
   struct file *f = process_get_file (fd);
+  int read_size = 0;
 
   lock_acquire (&filesys_lock);
 
-  if (fd == 1)
+  if (fd == STDOUT_FILENO)
   {
     putbuf ((char *)buffer, size);
-    return size;
+    read_size = size;
   }
   else
   {
     if (f)
     {
       file_write (f, buffer, size);
-      return size;
+      read_size = size;
     }
     else
-      return -1;
+      read_size = -1;
   }
 
   lock_release (&filesys_lock);
+  return read_size;
 }
 
 void
