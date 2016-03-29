@@ -95,8 +95,8 @@ start_process (void *file_name_)
   success = load (argv[0], &if_.eip, &if_.esp);
 
   // if load is successful, then semaphore up in parent process load semaphore.
-  if (success && thread_current ()->parent)
-    sema_up(&(thread_current()->parent->load));
+  if (success && t->parent)
+    sema_up(&(t->parent->load));
 
   // Save arguments in stack
   argument_stack (argv, argc, &if_.esp);
@@ -107,10 +107,10 @@ start_process (void *file_name_)
   if (!success)
   {
     // thread struct 초기화 할때 default 로 false 값주면 어떨지?
-    thread_current()->memory_load_success = false;
+    t->memory_load_success = false;
     thread_exit ();
   }
-  thread_current()->memory_load_success = true;
+  t->memory_load_success = true;
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -142,7 +142,7 @@ argument_stack (char **parse, int count, void **esp)
   }
 
   // word-align
-  for (i = 0; i < (size_t)*esp % 4; i++)
+  for (i = 0; i < (int)((size_t)*esp % 4); i++)
   {
     *esp = *esp - 1;
     **(uint8_t **)esp = 0;
@@ -188,7 +188,7 @@ process_wait (tid_t child_tid UNUSED)
   if (child_process == NULL)
     return -1;
 
-  sema_down(&thread_current()->exit);
+  sema_down(&t->exit);
   status = child_process->exit_status;
   remove_child_process(child_process);
 
@@ -577,10 +577,10 @@ install_page (void *upage, void *kpage, bool writable)
 struct thread *
 get_child_process (int pid)
 {
-  struct thread *t = thread_current (), *c;
+  struct thread *t = thread_current ();
   struct list_elem *e;
-  for (e = list_begin (&thread_current ()->children);
-       e != list_end (&thread_current ()->children);
+  for (e = list_begin (&t->children);
+       e != list_end (&t->children);
        e = list_next (e))
   {
     if (pid == list_entry(e, struct thread, child)->tid)
