@@ -54,7 +54,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_CREATE:
-      get_argument(f->esp, arg, 2);
+      get_argument (f->esp, arg, 2);
       file = (char *)arg[0];
       size = arg[1];
       chec_address(file);
@@ -62,29 +62,27 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_REMOVE:
-      get_argument(f->esp, (int*)file, 1);
-      chec_address(file);
-      f->eax = remove(file);  // bool remove (const char *file)
+      get_argument (f->esp, arg, 1);
+      f->eax = remove ((const char *)arg[0]);  // bool remove (const char *file)
       break;
 
     case SYS_OPEN:
-      get_argument(f->esp, (char*)file, 1);
-      chec_address(file);
-      f->eax = open((const char *)file);
+      get_argument (f->esp, arg, 1);
+      f->eax = open ((const char *)arg[0]);
       break;
 
     case SYS_FILESIZE:
-      get_argument(f->esp, &fd, 1);
+      get_argument (f->esp, &fd, 1);
       f->eax = filesize (fd);
       break;
 
     case SYS_READ:
-      get_argument(f->esp, arg, 3);
+      get_argument (f->esp, arg, 3);
       fd = arg[0];
       buffer = (void*)arg[1];
       size = arg[2];
-      chec_address(buffer + size);
-      f->eax = read(fd, buffer, size);
+      chec_address (buffer + size);
+      f->eax = read (fd, buffer, size);
       break;
 
     case SYS_WRITE:
@@ -104,13 +102,13 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_TELL:
-      get_argument(f->esp, &fd, 1);
-      f->eax = tell(fd);
+      get_argument (f->esp, &fd, 1);
+      f->eax = tell (fd);
       break;
 
     case SYS_CLOSE:
-      get_argument(f->esp, &fd, 1);
-      close(fd);
+      get_argument (f->esp, &fd, 1);
+      close (fd);
       break;
 
     default:
@@ -206,11 +204,12 @@ open (const char *file)
   if (_file == NULL)
     return -1;
 
-  while(t->fd_table[fd] != NULL)
+  while(thread_current()->fd_table[fd])
     fd++;
+  thread_current()->fd_table[fd] = _file;
 
-  t->fd_table[fd] = _file;
-  t->fd_size++;
+  if (fd == thread_current()->fd_size)
+    thread_current()->fd_size++;
 
   return fd;
 }
