@@ -39,8 +39,9 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_EXIT:
-      get_argument (f->esp, &status, 1);
-      exit(status);  // void exit (int status)
+      get_argument (f->esp, arg, 1);
+      status = arg[0];
+      exit(status);
       break;
 
     case SYS_EXEC:
@@ -49,7 +50,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_WAIT:
-      get_argument (f->esp, &pid, 1);
+      get_argument (f->esp, arg, 1);
+      pid = arg[0];
       f->eax = wait (pid);
       break;
 
@@ -72,7 +74,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_FILESIZE:
-      get_argument (f->esp, &fd, 1);
+      get_argument (f->esp, arg, 1);
+      fd = arg[0];
       f->eax = filesize (fd);
       break;
 
@@ -102,12 +105,14 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_TELL:
-      get_argument (f->esp, &fd, 1);
+      get_argument (f->esp, arg, 1);
+      fd = arg[0];
       f->eax = tell (fd);
       break;
 
     case SYS_CLOSE:
-      get_argument (f->esp, &fd, 1);
+      get_argument (f->esp, arg, 1);
+      fd = arg[0];
       close (fd);
       break;
 
@@ -159,7 +164,6 @@ exec (const char *cmd_line)
 {
   pid_t pid;
   struct thread *child_process;
-  struct thread *t = thread_current();
 
   pid = process_execute(cmd_line);
   child_process = get_child_process(pid);
