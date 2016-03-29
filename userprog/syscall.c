@@ -228,9 +228,11 @@ filesize (int fd)
 int
 read (int fd, void *buffer, unsigned size)
 {
-  struct file *file = NULL;
+  struct file *f = NULL;
   unsigned i = 0;
   int read_size = 0;
+
+  lock_acquire(&filesys_lock);
 
   if (fd == STDIN_FILENO)
   {
@@ -243,23 +245,23 @@ read (int fd, void *buffer, unsigned size)
 
   else
   {
-    lock_acquire(&filesys_lock);
-    file = process_get_file(fd);
+    f = process_get_file(fd);
 
-    if (file == NULL)
+    if (f == NULL)
       read_size = -1;
     else
-      read_size = file_read(file, buffer, size);
-
-    lock_release(&filesys_lock);
+      read_size = file_read(f, buffer, size);
   }
+
+  lock_release(&filesys_lock);
+
   return read_size;
 }
 
 int
 write (int fd, void *buffer, unsigned size)
 {
-  struct file *f = process_get_file (fd);
+  struct file *f = NULL;
   int read_size = 0;
 
   lock_acquire (&filesys_lock);
@@ -269,18 +271,21 @@ write (int fd, void *buffer, unsigned size)
     putbuf ((char *)buffer, size);
     read_size = size;
   }
+
   else
   {
-    if (f)
+    f = process_get_file (fd)
+    if (f == NULL)
+      read_size = -1;
+    else
     {
       file_write (f, buffer, size);
       read_size = size;
     }
-    else
-      read_size = -1;
   }
 
   lock_release (&filesys_lock);
+  
   return read_size;
 }
 
