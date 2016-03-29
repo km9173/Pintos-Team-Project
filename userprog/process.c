@@ -95,8 +95,8 @@ start_process (void *file_name_)
   success = load (argv[0], &if_.eip, &if_.esp);
 
   // if load is successful, then semaphore up in parent process load semaphore.
-  if (success)
-    sema_up(&(thread_current()->load));
+  if (success && thread_current ()->parent)
+    sema_up(&(thread_current()->parent->load));
 
   // Save arguments in stack
   argument_stack (argv, argc, &if_.esp);

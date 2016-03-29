@@ -45,12 +45,12 @@ syscall_handler (struct intr_frame *f UNUSED)
 
     case SYS_EXEC:
       get_argument (f->esp, arg, 1);
-      exec ((const char *)arg[0]);
+      f->eax = exec ((const char *)arg[0]);
       break;
 
     case SYS_WAIT:
       get_argument (f->esp, &pid, 1);
-      wait (pid);
+      f->eax = wait (pid);
       break;
 
     case SYS_CREATE:
@@ -68,7 +68,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_OPEN:
-      get_argument(f->esp, (int*)file, 1);
+      get_argument(f->esp, (char*)file, 1);
       chec_address(file);
       f->eax = open((const char *)file);
       break;
