@@ -274,7 +274,7 @@ write (int fd, void *buffer, unsigned size)
 
   else
   {
-    f = process_get_file (fd)
+    f = process_get_file (fd);
     if (f == NULL)
       read_size = -1;
     else
@@ -285,7 +285,7 @@ write (int fd, void *buffer, unsigned size)
   }
 
   lock_release (&filesys_lock);
-  
+
   return read_size;
 }
 
