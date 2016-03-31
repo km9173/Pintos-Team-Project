@@ -22,13 +22,18 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED)
 {
-  int status, fd, pid, arg[4];
-  char *file = NULL;
+  int status, fd, pid;
+  int *arg[4] = {0, };
+  char *file = NULL, *cmd_line = NULL;
   void *buffer;
   unsigned size, position;
 
+  //printf("1\n");
   // Check if stack pointer is in the user memory area
   chec_address (f->esp);
+  //printf("2\n");
+  //printf("call num : %d\n", *(int *)(f->esp));
+  //printf("SYS_WRITE : %d\n", SYS_WRITE);
 
   // Save user stack arguments in kernel
   switch (*(int *)(f->esp))
@@ -39,80 +44,107 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_EXIT:
-      get_argument (f->esp, arg, 1);
-      status = arg[0];
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)(arg[0]));
+      status = *(int *)arg[0];
+      //printf("[SYS_EXIT] status code : %d\n", *status);
       exit(status);
       break;
 
     case SYS_EXEC:
-      get_argument (f->esp, arg, 1);
-      f->eax = exec ((const char *)arg[0]);
+      // printf("hello SYS_EXEC!\n");
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)(arg[0]));
+      cmd_line = *(char **)arg[0];
+      // printf("cmd_line : %s\n", cmd_line);
+      f->eax = exec (cmd_line);
       break;
 
     case SYS_WAIT:
-      get_argument (f->esp, arg, 1);
-      pid = arg[0];
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      pid = *(int *)arg[0];
       f->eax = wait (pid);
       break;
 
     case SYS_CREATE:
-      get_argument (f->esp, arg, 2);
-      file = (char *)arg[0];
-      size = arg[1];
-      chec_address(file);
+      get_argument (f->esp, (int *)arg, 2);
+      chec_address((void *)arg[0]);
+      chec_address((void *)arg[1]);
+      file = *(char **)arg[0];
+      size = *(int *)arg[1];
       f->eax = create(file, size);  // bool create (const char *file, unsigned initial_size)
       break;
 
     case SYS_REMOVE:
-      get_argument (f->esp, arg, 1);
-      f->eax = remove ((const char *)arg[0]);  // bool remove (const char *file)
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      file = *(char **)arg[0];
+      f->eax = remove (file);  // bool remove (const char *file)
       break;
 
     case SYS_OPEN:
-      get_argument (f->esp, arg, 1);
-      f->eax = open ((const char *)arg[0]);
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      file = *(char **)arg[0];
+      f->eax = open (file);
       break;
 
     case SYS_FILESIZE:
-      get_argument (f->esp, arg, 1);
-      fd = arg[0];
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      fd = *(int *)arg[0];
       f->eax = filesize (fd);
       break;
 
     case SYS_READ:
-      get_argument (f->esp, arg, 3);
-      fd = arg[0];
-      buffer = (void*)arg[1];
-      size = arg[2];
+      // printf("[SYS_READ] hello :)\n");
+      get_argument (f->esp, (int *)arg, 3);
+      chec_address((void *)arg[0]);
+      chec_address((void *)arg[1]);
+      chec_address((void *)arg[2]);
+      fd = *(int *)arg[0];
+      buffer = *(void **)arg[1];
+      size = *(int *)arg[2];
+      // printf("fd address : %p\n fd value : %d\n", arg[0], fd);
       chec_address (buffer + size);
       f->eax = read (fd, buffer, size);
       break;
 
     case SYS_WRITE:
-      get_argument (f->esp, arg, 3);
-      fd = arg[0];
-      buffer = (void*)arg[1];
-      size = arg[2];
+      // printf("[SYS_WRITE] hello :)\n");
+      get_argument (f->esp, (int *)arg, 3);
+      chec_address((void *)arg[0]);
+      chec_address((void *)arg[1]);
+      chec_address((void *)arg[2]);
+      fd = *(int *)arg[0];
+      buffer = *(void **)arg[1];
+      size = *(int *)arg[2];
+      // printf("fd address : %p\n fd value : %d\n", arg[0], fd);
       chec_address (buffer + size);
       f->eax = write (fd, buffer, size);
       break;
 
     case SYS_SEEK:
-      get_argument (f->esp, arg, 2);
-      fd = arg[0];
-      position = arg[1];
+      get_argument (f->esp, (int *)arg, 2);
+      chec_address((void *)arg[0]);
+      chec_address((void *)arg[1]);
+      fd = *(int *)arg[0];
+      position = *(unsigned *)arg[1];
       seek (fd, position);
       break;
 
     case SYS_TELL:
-      get_argument (f->esp, arg, 1);
-      fd = arg[0];
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      fd = *(int *)arg[0];
       f->eax = tell (fd);
       break;
 
     case SYS_CLOSE:
-      get_argument (f->esp, arg, 1);
-      fd = arg[0];
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      fd = *(int *)arg[0];
       close (fd);
       break;
 
@@ -130,18 +162,28 @@ get_argument (void *esp, int *arg, int count)
   int i = 0;
   for (i = 0; i < count; i++)
   {
+    // printf("3\n");
     esp = esp + 4;
+    // printf("4\n");
     chec_address(esp);  // Check if *esp address in user memory area
-    arg[i] = *(int *)esp;
+    // printf("5\n");
+    arg[i] = esp;
+    // printf("arg[%d] address : %p\n", i, &arg[i]);
+    // printf("arg[%d] value : %x\n", i, arg[i]);
+    //printf("arg[%d] pointing value : %d\n", i, *arg[i]);
   }
 }
 
 void
 chec_address (void *addr)
 {
+  // printf("addr : %p\n", addr);
+  // printf("addr value addr : %x\n", *(int *)addr);
   // Check addr is user memory area, If invalid access then exit process
-  if (addr < (void*) 0x8048000 || addr > (void*) 0xc0000000)
+  if (addr < (void*) 0x8048000 || addr >= (void*) 0xc0000000)
+  {
     exit(-1);
+  }
 }
 
 void
@@ -165,6 +207,8 @@ exec (const char *cmd_line)
   pid_t pid;
   struct thread *child_process;
   struct thread *t = thread_current();
+
+  // printf("[exec] cmd_line : %s\n", cmd_line);
 
   pid = process_execute(cmd_line);
   child_process = get_child_process(pid);
