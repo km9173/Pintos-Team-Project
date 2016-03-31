@@ -208,12 +208,15 @@ exec (const char *cmd_line)
   struct thread *child_process;
   struct thread *t = thread_current();
 
-  // printf("[exec] cmd_line : %s\n", cmd_line);
-
+  //printf("[exec] cmd_line : %s\n", cmd_line);
+  // printf("1\n");
   pid = process_execute(cmd_line);
+  // printf("2\n");
   child_process = get_child_process(pid);
+  // printf("3\n");
 
-  sema_down(&t->load);
+  sema_down(&child_process->load);
+  // printf("4\n");
 
   if (!child_process->memory_load_success)
     return -1;

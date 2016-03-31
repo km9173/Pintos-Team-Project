@@ -324,7 +324,7 @@ thread_exit (void)
   // Mark process_dead = true, Then sema_up(parent)
   thread_current ()->process_dead = true;
   if (thread_current ()->parent)
-    sema_up (&thread_current ()->parent->exit);
+    sema_up (&thread_current ()->exit);
   thread_current()->status = THREAD_DYING;  // change thread_current () -> t
   schedule ();
   NOT_REACHED ();

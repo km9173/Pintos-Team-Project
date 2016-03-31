@@ -34,30 +34,49 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
   // Variables for parsing
-  char *fn = (char *)file_name, *save_ptr;
+  // printf("1\n");
+  char *fn = NULL, *save_ptr = NULL;
+  // printf("2\n");
+
+  fn = (char *)malloc(strlen(file_name) + 1);
+  strlcpy(fn, file_name, strlen(file_name) + 1);
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
+  // printf("3\n");
   if (fn_copy == NULL)
+  {
+    free(fn);
     return TID_ERROR;
+  }
+
+  // printf("4\n");
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  // printf("5\n");
   // Parse the first token which will be file_name
   fn = strtok_r (fn, " ", &save_ptr);
-
+  // printf("6\n");
   // check name is NULL. if NULL then return error
   if (fn == NULL)
   {
     palloc_free_page (fn_copy);
+    free(fn);
+    // printf("6-5\n");
     return TID_ERROR;
   }
+  // printf("7\n");
 
   /* Create a new thread to execute FILE_NAME. */
   // Changed "file_name" to "fn"
   tid = thread_create (fn, PRI_DEFAULT, start_process, fn_copy);
+  // printf("8\n");
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
+
+  free(fn);
+  //printf("9\n");
   return tid;
 }
 
@@ -73,6 +92,7 @@ start_process (void *file_name_)
   char **argv, *save_ptr, temp = ' ';  // To check if first char is ' '
   struct thread *t = thread_current();
 
+  // printf("5\n");
   for (i = 0; file_name[i] != '\0'; i++)
   {
     if (temp == ' ' && file_name[i] != ' ')
@@ -80,12 +100,15 @@ start_process (void *file_name_)
     temp = file_name[i];
   }
 
+  // printf("6\n");
   // Get file name and arguments
   argv = (char**)malloc(sizeof(char*) * (argc + 1));
   argv[0] = strtok_r (file_name, " ", &save_ptr);
+  // printf("7\n");
   for (i = 1; i <= argc; i++)
     argv[i] = strtok_r (NULL, " ", &save_ptr);
 
+  // printf("8\n");
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -94,23 +117,32 @@ start_process (void *file_name_)
   // Changed first argv 'file_name' into 'argv[0]'
   success = load (argv[0], &if_.eip, &if_.esp);
 
+  // printf("9\n");
+  t->memory_load_success = success;
+
   // if load is done, then semaphore up in parent process load semaphore.
   if (t->parent)
-    sema_up(&(t->parent->load));
+  {
+    // printf("9-1\n");
+    sema_up(&(t->load));
+  }
 
+
+  // printf("10\n");
   // Save arguments in stack
   argument_stack (argv, argc, &if_.esp);
   free(argv);
+  // printf("11\n");
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
+  // printf("12\n");
   if (!success)
   {
-    // thread struct 초기화 할때 default 로 false 값주면 어떨지?
-    t->memory_load_success = false;
+    // printf("12-1\n");
     thread_exit ();
   }
-  t->memory_load_success = true;
+  // printf("13\n");
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -188,7 +220,7 @@ process_wait (tid_t child_tid UNUSED)
   if (child_process == NULL)
     return -1;
 
-  sema_down(&t->exit);
+  sema_down(&child_process->exit);
   status = child_process->exit_status;
   remove_child_process(child_process);
 
@@ -592,6 +624,7 @@ get_child_process (int pid)
 void
 remove_child_process (struct thread *cp)
 {
+  //printf("hello remove_child_process!!\n");
   list_remove (&cp->child);
   palloc_free_page (cp);
 }
