@@ -211,7 +211,7 @@ thread_create (const char *name, int priority,
   intr_set_level (old_level);
 
   // Process hierachy & initialize variables,semaphores,list
-  t->parent = running_thread ();
+  t->parent = thread_current ();
   t->memory_load_success = false;
   t->process_dead = false;
   sema_init (&t->exit, 0);
