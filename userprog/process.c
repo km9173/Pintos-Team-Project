@@ -17,12 +17,16 @@
 #include "threads/interrupt.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
+#include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack (char **parse, int count, void **esp);
+
+struct lock file_lock;
+bool file_inited = false;
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -221,6 +225,7 @@ process_exit (void)
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
+
   if (pd != NULL)
     {
       /* Correct ordering here is crucial.  We must set
@@ -234,6 +239,10 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+
+  // Allow write to executable
+  if (thread_current ()->run_file)
+    file_allow_write (thread_current ()->run_file);
 }
 
 /* Sets up the CPU for running user code in the current
@@ -341,13 +350,27 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  // Acquire lock
+  if (!file_inited)
+  {
+    lock_init (&file_lock);
+    file_inited = true;
+  }
+  lock_acquire (&file_lock);
+
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL)
     {
+      lock_release (&file_lock);
       printf ("load: %s: open failed\n", file_name);
       goto done;
     }
+
+  // Denying write to Executable & release lock
+  thread_current ()->run_file = file;
+  file_deny_write (thread_current ()->run_file);
+  lock_release (&file_lock);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -432,7 +455,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //file_close (file);
   return success;
 }
 

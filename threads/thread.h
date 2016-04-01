@@ -118,6 +118,9 @@ struct thread
     struct file *fd_table[FD_MAX];      /* File Descriptor Table. */
     int fd_size;                        /* File Descriptor Size */
 
+    // Running File: Denying write to executable
+    struct file *run_file;
+
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 

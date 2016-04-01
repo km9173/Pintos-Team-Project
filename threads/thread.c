@@ -217,6 +217,7 @@ thread_create (const char *name, int priority,
   sema_init (&t->exit, 0);
   sema_init (&t->load, 0);
   list_push_back (&thread_current ()->children, &t->child);
+  thread_current ()->run_file = NULL;
 
   // File Descriptor initialize
   t->fd_size = 2;
