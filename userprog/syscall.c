@@ -28,12 +28,8 @@ syscall_handler (struct intr_frame *f UNUSED)
   void *buffer;
   unsigned size, position;
 
-  //printf("1\n");
   // Check if stack pointer is in the user memory area
   chec_address (f->esp);
-  //printf("2\n");
-  //printf("call num : %d\n", *(int *)(f->esp));
-  //printf("SYS_WRITE : %d\n", SYS_WRITE);
 
   // Save user stack arguments in kernel
   switch (*(int *)(f->esp))
@@ -47,16 +43,13 @@ syscall_handler (struct intr_frame *f UNUSED)
       get_argument (f->esp, (int *)arg, 1);
       chec_address((void *)(arg[0]));
       status = *(int *)arg[0];
-      //printf("[SYS_EXIT] status code : %d\n", *status);
       exit(status);
       break;
 
     case SYS_EXEC:
-      // printf("hello SYS_EXEC!\n");
       get_argument (f->esp, (int *)arg, 1);
       chec_address((void *)(arg[0]));
       cmd_line = *(char **)arg[0];
-      // printf("cmd_line : %s\n", cmd_line);
       f->eax = exec (cmd_line);
       break;
 
@@ -73,14 +66,14 @@ syscall_handler (struct intr_frame *f UNUSED)
       chec_address((void *)arg[1]);
       file = *(char **)arg[0];
       size = *(int *)arg[1];
-      f->eax = create(file, size);  // bool create (const char *file, unsigned initial_size)
+      f->eax = create(file, size);
       break;
 
     case SYS_REMOVE:
       get_argument (f->esp, (int *)arg, 1);
       chec_address((void *)arg[0]);
       file = *(char **)arg[0];
-      f->eax = remove (file);  // bool remove (const char *file)
+      f->eax = remove (file);
       break;
 
     case SYS_OPEN:
@@ -98,7 +91,6 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
 
     case SYS_READ:
-      // printf("[SYS_READ] hello :)\n");
       get_argument (f->esp, (int *)arg, 3);
       chec_address((void *)arg[0]);
       chec_address((void *)arg[1]);
@@ -106,13 +98,11 @@ syscall_handler (struct intr_frame *f UNUSED)
       fd = *(int *)arg[0];
       buffer = *(void **)arg[1];
       size = *(int *)arg[2];
-      // printf("fd address : %p\n fd value : %d\n", arg[0], fd);
       chec_address (buffer + size);
       f->eax = read (fd, buffer, size);
       break;
 
     case SYS_WRITE:
-      // printf("[SYS_WRITE] hello :)\n");
       get_argument (f->esp, (int *)arg, 3);
       chec_address((void *)arg[0]);
       chec_address((void *)arg[1]);
@@ -120,7 +110,6 @@ syscall_handler (struct intr_frame *f UNUSED)
       fd = *(int *)arg[0];
       buffer = *(void **)arg[1];
       size = *(int *)arg[2];
-      // printf("fd address : %p\n fd value : %d\n", arg[0], fd);
       chec_address (buffer + size);
       f->eax = write (fd, buffer, size);
       break;
@@ -151,7 +140,6 @@ syscall_handler (struct intr_frame *f UNUSED)
     default:
       thread_exit ();
   }
-
   // delete when implementation finished
   //thread_exit ();
 }
@@ -162,28 +150,18 @@ get_argument (void *esp, int *arg, int count)
   int i = 0;
   for (i = 0; i < count; i++)
   {
-    // printf("3\n");
     esp = esp + 4;
-    // printf("4\n");
     chec_address(esp);  // Check if *esp address in user memory area
-    // printf("5\n");
     arg[i] = esp;
-    // printf("arg[%d] address : %p\n", i, &arg[i]);
-    // printf("arg[%d] value : %x\n", i, arg[i]);
-    //printf("arg[%d] pointing value : %d\n", i, *arg[i]);
   }
 }
 
 void
 chec_address (void *addr)
 {
-  // printf("addr : %p\n", addr);
-  // printf("addr value addr : %x\n", *(int *)addr);
   // Check addr is user memory area, If invalid access then exit process
   if (addr < (void*) 0x8048000 || addr >= (void*) 0xc0000000)
-  {
     exit(-1);
-  }
 }
 
 void
@@ -208,15 +186,10 @@ exec (const char *cmd_line)
   struct thread *child_process;
   struct thread *t = thread_current();
 
-  //printf("[exec] cmd_line : %s\n", cmd_line);
-  // printf("1\n");
   pid = process_execute(cmd_line);
-  // printf("2\n");
   child_process = get_child_process(pid);
-  // printf("3\n");
 
   sema_down(&child_process->load);
-  // printf("4\n");
 
   if (!child_process->memory_load_success)
     return -1;
