@@ -1,4 +1,5 @@
 #include "userprog/process.h"
+#include "userprog/syscall.h"
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
@@ -24,9 +25,6 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack (char **parse, int count, void **esp);
-
-struct lock file_lock;
-bool file_inited = false;
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -222,6 +220,12 @@ process_exit (void)
   for (fd = 2; fd < cur->fd_size; fd++)
     process_close_file (fd);
 
+  // Allow write to executable
+  if (thread_current ()->run_file)
+  {
+    file_allow_write (thread_current ()->run_file);
+  }
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -239,10 +243,6 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
-
-  // Allow write to executable
-  if (thread_current ()->run_file)
-    file_allow_write (thread_current ()->run_file);
 }
 
 /* Sets up the CPU for running user code in the current
@@ -351,18 +351,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   // Acquire lock
-  if (!file_inited)
-  {
-    lock_init (&file_lock);
-    file_inited = true;
-  }
-  lock_acquire (&file_lock);
+  lock_acquire (&filesys_lock);
 
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL)
     {
-      lock_release (&file_lock);
+      lock_release (&filesys_lock);
       printf ("load: %s: open failed\n", file_name);
       goto done;
     }
@@ -370,7 +365,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   // Denying write to Executable & release lock
   thread_current ()->run_file = file;
   file_deny_write (thread_current ()->run_file);
-  lock_release (&file_lock);
+  lock_release (&filesys_lock);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr

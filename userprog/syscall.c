@@ -308,10 +308,7 @@ write (int fd, void *buffer, unsigned size)
     if (f == NULL)
       read_size = -1;
     else
-    {
-      file_write (f, buffer, size);
-      read_size = size;
-    }
+      read_size = file_write (f, buffer, size);
   }
 
   lock_release (&filesys_lock);
