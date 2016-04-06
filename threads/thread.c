@@ -96,6 +96,7 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
+  list_init (&sleep_list);
   list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
@@ -600,7 +601,20 @@ thread_sleep (int64_t ticks)
 void
 thread_awake (int64_t ticks)
 {
-
+  struct list_elem *e = NULL;
+  struct thread *t = NULL;
+  // thread.c thread_foreach 함수에서 로직을 가져옴.. (조건문이 조금 이상?)
+  for (e = list_begin (&sleep_list); e != list_end (&sleep_list); e = list_next (e))
+  {
+    t = list_entry (e, struct thread, allelem);
+    if (t->wakeup_tick >= ticks)
+    {
+      list_remove (e);
+      t->status = THREAD_READY;
+    }
+    else
+      update_next_tick_to_awake(ticks);
+  }
 }
 
 void
