@@ -607,7 +607,7 @@ thread_awake (int64_t ticks)
   for (e = list_begin (&sleep_list); e != list_end (&sleep_list); e = list_next (e))
   {
     t = list_entry (e, struct thread, allelem);
-    if (t->wakeup_tick >= ticks)
+    if (t->wakeup_tick <= ticks)
     {
       list_remove (e);
       t->status = THREAD_READY;
@@ -620,7 +620,8 @@ thread_awake (int64_t ticks)
 void
 update_next_tick_to_awake (int64_t ticks)
 {
-
+  if (ticks < next_tick_to_awake)
+    next_tick_to_awake = ticks;
 }
 
 int64_t
