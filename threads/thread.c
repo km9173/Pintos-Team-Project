@@ -594,7 +594,12 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 void
 thread_sleep (int64_t ticks)
 {
-
+  thread *t = current_thread ();
+  if (t == idle_thread)
+  {
+    t->status = THREAD_BLOCKED;
+    t->wakeup_tick = ticks;
+  }
 }
 
 void
