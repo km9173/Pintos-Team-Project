@@ -595,7 +595,19 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 void
 thread_sleep (int64_t ticks)
 {
+  thread *t = current_thread ();
+  enum intr_level old_level;
 
+  old_level = intr_disable ();
+  if (t != idle_thread)
+  {
+    t->status = THREAD_BLOCKED;
+    t->wakeup_tick = ticks;
+    update_next_tick_to_awake (ticks);
+  }
+  list_push_back (&sleep_list, &t->elem);
+  schedule ();
+  intr_set_level (old_level);
 }
 
 void
@@ -627,5 +639,5 @@ update_next_tick_to_awake (int64_t ticks)
 int64_t
 get_next_tick_to_awake (void)
 {
-
+  return next_tick_to_awake;
 }
