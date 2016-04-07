@@ -595,7 +595,7 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 void
 thread_sleep (int64_t ticks)
 {
-  thread *t = current_thread ();
+  struct thread *t = thread_current ();
   enum intr_level old_level;
 
   old_level = intr_disable ();
