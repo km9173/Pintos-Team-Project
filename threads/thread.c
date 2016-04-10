@@ -11,6 +11,9 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+//
+#include <inttypes.h>
+//
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -57,7 +60,7 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
-static int64_t next_tick_to_awake = INT64_MAX; /* minimal tick of wakeup tick in sleep_list */
+int64_t next_tick_to_awake = INT64_MAX; /* minimal tick of wakeup tick in sleep_list */
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -98,6 +101,9 @@ thread_init (void)
   list_init (&ready_list);
   list_init (&sleep_list);
   list_init (&all_list);
+
+  // printf("hello thread_init\n");
+  next_tick_to_awake = INT64_MAX;
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -597,17 +603,32 @@ thread_sleep (int64_t ticks)
 {
   struct thread *t = thread_current ();
   enum intr_level old_level;
+  bool b_idle_thread = true;
+  //printf("\nthread_sleep ticks: %"PRId64" ticks\n", ticks);
 
   old_level = intr_disable ();
   if (t != idle_thread)
   {
+    // printf("hello thread_sleep not idle_thread\n");
     t->status = THREAD_BLOCKED;
+    // b_idle_thread = false;
+    // printf("1\n");
     t->wakeup_tick = ticks;
+    // printf("2\n");
     update_next_tick_to_awake (ticks);
+    // printf("3\n");
   }
-  list_push_back (&sleep_list, &t->elem);
-  schedule ();
+  // printf("hello thread_sleep 2\n");
+  list_push_back (&sleep_list, &(t->elem));
+  // printf("hello thread_sleep 3\n");
+
+  // if (b_idle_thread)
+    schedule ();
+  // else
+  //   thread_block();
+  // printf("hello thread_sleep 4\n");
   intr_set_level (old_level);
+  // printf("hello thread_sleep 5\n");
 }
 
 void
@@ -615,25 +636,41 @@ thread_awake (int64_t ticks)
 {
   struct list_elem *e = NULL;
   struct thread *t = NULL;
+  // printf("hello thread_awake\n");
   // thread.c thread_foreach 함수에서 로직을 가져옴.. (조건문이 조금 이상?)
   for (e = list_begin (&sleep_list); e != list_end (&sleep_list); e = list_next (e))
   {
-    t = list_entry (e, struct thread, allelem);
+    t = list_entry (e, struct thread, elem);
     if (t->wakeup_tick <= ticks)
     {
-      list_remove (e);
-      t->status = THREAD_READY;
+      // printf("hello thread_awake in wakeup_tick <= ticks\n");
+      // printf("t name : %s\n", t->name);
+      // printf("t wakeup_tick : %"PRId64" ticks\n", t->wakeup_tick);
+      // printf("ticks : %"PRId64" ticks\n", ticks);
+      e = list_prev(e);
+      list_remove (e->next);
+      thread_unblock(t);
+      // t->status = THREAD_READY;
     }
     else
+    {
+      // printf("hello thread_awake in wakeup_tick > ticks\n");
+      // printf("t wakeup_tick : %"PRId64" ticks\n", t->wakeup_tick);
+      // printf("ticks : %"PRId64" ticks\n", ticks);
       update_next_tick_to_awake(ticks);
+    }
   }
 }
 
 void
 update_next_tick_to_awake (int64_t ticks)
 {
-  if (ticks < next_tick_to_awake)
+  // printf("hello update_next_tick_to_awake\n");
+  // printf("ticks: %"PRId64" ticks\n", ticks);
+  // printf("next_tick_to_awake : %"PRId64" ticks\n", get_next_tick_to_awake());
+  if (ticks < get_next_tick_to_awake())
     next_tick_to_awake = ticks;
+  // printf("result : next_tick_to_awake : %"PRId64"\n", get_next_tick_to_awake());
 }
 
 int64_t
