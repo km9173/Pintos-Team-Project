@@ -88,7 +88,7 @@ static tid_t allocate_tid (void);
 
    After calling this function, be sure to initialize the page
    allocator before trying to create any threads with
-   thread_create().
+   ate().
 
    It is not safe to call thread_current() until this function
    finishes. */
@@ -220,6 +220,8 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+
+  printf("[thread create] name : %s\n", name);
 
   return tid;
 }
@@ -621,16 +623,15 @@ thread_sleep (int64_t ticks)
     update_next_tick_to_awake (ticks);
     // printf("3\n");
     // printf("hello thread_sleep 2\n");
-    list_push_front (&sleep_list, &(t->elem));
-    // printf("hello thread_sleep 3\n");
-
-
-    // if (b_idle_thread)
-    schedule ();
     // else
     //   thread_block();
     // printf("hello thread_sleep 4\n");
   }
+  list_push_back (&sleep_list, &(t->elem));
+  // printf("hello thread_sleep 3\n");
+
+  // if (b_idle_thread)
+  schedule ();
 
   intr_set_level (old_level);
   // printf("hello thread_sleep 5\n");
@@ -648,10 +649,10 @@ thread_awake (int64_t ticks)
     t = list_entry (e, struct thread, elem);
     if (t->wakeup_tick <= ticks)
     {
-      // printf("hello thread_awake in wakeup_tick <= ticks\n");
+      //printf("hello thread_awake in wakeup_tick <= ticks\n");
       // printf("t name : %s\n", t->name);
       // printf("t wakeup_tick : %"PRId64" ticks\n", t->wakeup_tick);
-      // printf("ticks : %"PRId64" ticks\n", ticks);
+      // printf("ticks : %"PRId64" ticks\n\n", ticks);
       e = list_prev(e);
       list_remove (e->next);
       thread_unblock(t);
