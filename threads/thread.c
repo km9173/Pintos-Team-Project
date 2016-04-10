@@ -601,32 +601,37 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 void
 thread_sleep (int64_t ticks)
 {
-  struct thread *t = thread_current ();
+  struct thread *t = NULL;
   enum intr_level old_level;
   bool b_idle_thread = true;
   //printf("\nthread_sleep ticks: %"PRId64" ticks\n", ticks);
 
   old_level = intr_disable ();
+  t = thread_current ();
   if (t != idle_thread)
   {
+
     // printf("hello thread_sleep not idle_thread\n");
     t->status = THREAD_BLOCKED;
     // b_idle_thread = false;
     // printf("1\n");
     t->wakeup_tick = ticks;
+    list_remove(&t->elem);
     // printf("2\n");
     update_next_tick_to_awake (ticks);
     // printf("3\n");
-  }
-  // printf("hello thread_sleep 2\n");
-  list_push_back (&sleep_list, &(t->elem));
-  // printf("hello thread_sleep 3\n");
+    // printf("hello thread_sleep 2\n");
+    list_push_front (&sleep_list, &(t->elem));
+    // printf("hello thread_sleep 3\n");
 
-  // if (b_idle_thread)
+
+    // if (b_idle_thread)
     schedule ();
-  // else
-  //   thread_block();
-  // printf("hello thread_sleep 4\n");
+    // else
+    //   thread_block();
+    // printf("hello thread_sleep 4\n");
+  }
+
   intr_set_level (old_level);
   // printf("hello thread_sleep 5\n");
 }

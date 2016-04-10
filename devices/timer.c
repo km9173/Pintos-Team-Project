@@ -99,7 +99,7 @@ timer_sleep (int64_t ticks)
   //   thread_yield ();
   // printf("hello timer_sleep, before call thread_sleep func\n");
   // printf("current thread name : %s\n", thread_current()->name);
-  thread_sleep(ticks);
+  thread_sleep(start + ticks);
   // printf("hello timer_sleep, after call thread_sleep func\n");
 }
 
