@@ -221,8 +221,6 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  printf("[thread create] name : %s\n", name);
-
   return tid;
 }
 
