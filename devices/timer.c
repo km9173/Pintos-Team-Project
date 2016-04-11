@@ -90,17 +90,10 @@ void
 timer_sleep (int64_t ticks)
 {
   int64_t start = timer_ticks ();
-  // printf("hello timer_sleep\n");
-  // printf ("start: %"PRId64" ticks\n", start);
-  // printf ("ticks: %"PRId64" ticks\n", ticks);
 
   ASSERT (intr_get_level () == INTR_ON);
-  // while (timer_elapsed (start) < ticks)
-  //   thread_yield ();
-  // printf("hello timer_sleep, before call thread_sleep func\n");
-  // printf("current thread name : %s\n", thread_current()->name);
+
   thread_sleep(start + ticks);
-  // printf("hello timer_sleep, after call thread_sleep func\n");
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -177,17 +170,11 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
-  // printf("hello timer_interrupt\n");
-
   ticks++;
   thread_tick ();
-  // printf("ticks : %d\n", ticks);
-  // printf("get_next_tick_to_awake () : %"PRId64"\n", get_next_tick_to_awake ());
 
   if (get_next_tick_to_awake () <= ticks)
     thread_awake (ticks);
-
-  // printf("end timer_interrupt\n");
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

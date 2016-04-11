@@ -605,36 +605,19 @@ thread_sleep (int64_t ticks)
 {
   struct thread *t = NULL;
   enum intr_level old_level;
-  bool b_idle_thread = true;
-  //printf("\nthread_sleep ticks: %"PRId64" ticks\n", ticks);
 
   old_level = intr_disable ();
   t = thread_current ();
   if (t != idle_thread)
   {
-
-    // printf("hello thread_sleep not idle_thread\n");
-    t->status = THREAD_BLOCKED;
-    // b_idle_thread = false;
-    // printf("1\n");
     t->wakeup_tick = ticks;
-    list_remove(&t->elem);
-    // printf("2\n");
     update_next_tick_to_awake (ticks);
-    // printf("3\n");
-    // printf("hello thread_sleep 2\n");
-    // else
-    //   thread_block();
-    // printf("hello thread_sleep 4\n");
   }
   list_push_back (&sleep_list, &(t->elem));
-  // printf("hello thread_sleep 3\n");
 
-  // if (b_idle_thread)
-  schedule ();
+  thread_block ();
 
   intr_set_level (old_level);
-  // printf("hello thread_sleep 5\n");
 }
 
 void
@@ -642,41 +625,25 @@ thread_awake (int64_t ticks)
 {
   struct list_elem *e = NULL;
   struct thread *t = NULL;
-  // printf("hello thread_awake\n");
-  // thread.c thread_foreach 함수에서 로직을 가져옴.. (조건문이 조금 이상?)
   for (e = list_begin (&sleep_list); e != list_end (&sleep_list); e = list_next (e))
   {
     t = list_entry (e, struct thread, elem);
     if (t->wakeup_tick <= ticks)
     {
-      //printf("hello thread_awake in wakeup_tick <= ticks\n");
-      // printf("t name : %s\n", t->name);
-      // printf("t wakeup_tick : %"PRId64" ticks\n", t->wakeup_tick);
-      // printf("ticks : %"PRId64" ticks\n\n", ticks);
       e = list_prev(e);
       list_remove (e->next);
       thread_unblock(t);
-      // t->status = THREAD_READY;
     }
     else
-    {
-      // printf("hello thread_awake in wakeup_tick > ticks\n");
-      // printf("t wakeup_tick : %"PRId64" ticks\n", t->wakeup_tick);
-      // printf("ticks : %"PRId64" ticks\n", ticks);
       update_next_tick_to_awake(ticks);
-    }
   }
 }
 
 void
 update_next_tick_to_awake (int64_t ticks)
 {
-  // printf("hello update_next_tick_to_awake\n");
-  // printf("ticks: %"PRId64" ticks\n", ticks);
-  // printf("next_tick_to_awake : %"PRId64" ticks\n", get_next_tick_to_awake());
   if (ticks < get_next_tick_to_awake())
     next_tick_to_awake = ticks;
-  // printf("result : next_tick_to_awake : %"PRId64"\n", get_next_tick_to_awake());
 }
 
 int64_t
