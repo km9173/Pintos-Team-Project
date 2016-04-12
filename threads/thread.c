@@ -655,8 +655,7 @@ test_max_priority (void)
 {
   struct thread *cur = NULL;
   struct thread *t = NULL;
-  // if (ready_list not empty)
-  // then compare
+  
   if (!list_empty(ready_list))
   {
     cur = thread_current();
