@@ -18,3 +18,4 @@ matmult
 recursor
 *.d
 *.a
+*.o
