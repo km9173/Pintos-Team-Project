@@ -653,11 +653,29 @@ get_next_tick_to_awake (void)
 void
 test_max_priority (void)
 {
-
+  struct thread *cur = NULL;
+  struct thread *t = NULL;
+  // if (ready_list not empty)
+  // then compare
+  if (!list_empty(ready_list))
+  {
+    cur = thread_current();
+    t = list_entry (list_begin(ready_list), struct thread, elem);
+    if (cur->priority < t->priority)
+    {
+      cur->status = THREAD_READY;
+      schedule();
+    }
+  }
 }
 
 bool
-cmp_priority (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED)
+cmp_priority (const struct list_elem *a_,
+              const struct list_elem *b_, void *aux UNUSED)
 {
-
+  if (list_entry (a_, struct thread, elem)->priority >
+      list_entry (b_, struct thread, elem)->priority)
+    return true;
+  else
+    return false;
 }
