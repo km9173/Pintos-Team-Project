@@ -649,3 +649,15 @@ get_next_tick_to_awake (void)
 {
   return next_tick_to_awake;
 }
+
+void
+test_max_priority (void)
+{
+
+}
+
+bool
+cmp_priority (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED)
+{
+
+}

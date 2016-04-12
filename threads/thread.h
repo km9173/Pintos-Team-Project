@@ -145,4 +145,10 @@ void thread_awake (int64_t ticks);  /* wakeup thread in thread sleep_list */
 void update_next_tick_to_awake (int64_t ticks); /* update minimal wakeup_tick */
 int64_t get_next_tick_to_awake (void);  /* return next_tick_to_awake value */
 
+// compare current running thread and highist priority thread
+// and then run schedule higher one
+void test_max_priority (void);
+// compare two threads, a and b, then return true if a > b, or return false if a <= b.
+bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+
 #endif /* threads/thread.h */
