@@ -124,7 +124,7 @@ sema_up (struct semaphore *sema)
   sema->value++;
 
   // priority preemption
-  thread_yield ();
+  test_max_priority ();
 
   intr_set_level (old_level);
 }
@@ -359,7 +359,7 @@ cmp_sem_priority (const struct list_elem *a,
   struct semaphore_elem *sa = list_entry (a, struct semaphore_elem, elem);
   struct semaphore_elem *sb = list_entry (b, struct semaphore_elem, elem);
 
-  if ( list_entry (list_begin (&sa->semaphore.waiters), struct thread, elem)->priority > 
+  if ( list_entry (list_begin (&sa->semaphore.waiters), struct thread, elem)->priority >
        list_entry (list_begin (&sb->semaphore.waiters), struct thread, elem)->priority )
     return true;
   return false;
