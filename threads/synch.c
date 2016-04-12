@@ -359,7 +359,7 @@ cmp_sem_priority (const struct list_elem *a,
   struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
   struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
 
-  if (sa->semaphore > sb->semaphore)
+  if (sa->semaphore.value > sb->semaphore.value)
     return true;
   else
     return false;
