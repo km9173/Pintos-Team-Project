@@ -221,6 +221,8 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  test_max_priority ();
+
   return tid;
 }
 
@@ -655,7 +657,7 @@ test_max_priority (void)
 {
   struct thread *cur = NULL;
   struct thread *t = NULL;
-  
+
   if (!list_empty(ready_list))
   {
     cur = thread_current();
@@ -663,7 +665,7 @@ test_max_priority (void)
     if (cur->priority < t->priority)
     {
       cur->status = THREAD_READY;
-      schedule();
+      thread_yield ();
     }
   }
 }
