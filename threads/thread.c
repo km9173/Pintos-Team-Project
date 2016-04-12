@@ -661,13 +661,10 @@ test_max_priority (void)
 
   if (!list_empty(&ready_list))
   {
-    cur = thread_current();
+    cur = thread_current ();
     t = list_entry (list_begin(&ready_list), struct thread, elem);
     if (cur->priority < t->priority)
-    {
-      cur->status = THREAD_READY;
       thread_yield ();
-    }
   }
 }
 
