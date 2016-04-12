@@ -103,6 +103,8 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
+    /* wakeup tick */
+    int64_t wakeup_tick;
 
     // Implement process hierarchy
     struct thread *parent;              /* Parent process descriptor. */
@@ -164,5 +166,9 @@ int thread_get_load_avg (void);
 
 // Process hierarchy
 
+void thread_sleep (int64_t ticks);  /* sleep running thread */
+void thread_awake (int64_t ticks);  /* wakeup thread in thread sleep_list */
+void update_next_tick_to_awake (int64_t ticks); /* update minimal wakeup_tick */
+int64_t get_next_tick_to_awake (void);  /* return next_tick_to_awake value */
 
 #endif /* threads/thread.h */

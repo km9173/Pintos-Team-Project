@@ -11,6 +11,9 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+//
+#include <inttypes.h>
+//
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -23,6 +26,10 @@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
+
+/* List of process in THREAD_SLEEP state, that is, processes
+   that are not schedule run state but wait to wakeup after pass wakeup_ticks */
+static struct list sleep_list;
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -53,6 +60,7 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
+int64_t next_tick_to_awake = INT64_MAX; /* minimal tick of wakeup tick in sleep_list */
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -80,7 +88,7 @@ static tid_t allocate_tid (void);
 
    After calling this function, be sure to initialize the page
    allocator before trying to create any threads with
-   thread_create().
+   ate().
 
    It is not safe to call thread_current() until this function
    finishes. */
@@ -91,7 +99,11 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
+  list_init (&sleep_list);
   list_init (&all_list);
+
+  // printf("hello thread_init\n");
+  next_tick_to_awake = INT64_MAX;
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -615,3 +627,55 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+void
+thread_sleep (int64_t ticks)
+{
+  struct thread *t = NULL;
+  enum intr_level old_level;
+
+  old_level = intr_disable ();
+  t = thread_current ();
+  if (t != idle_thread)
+  {
+    t->wakeup_tick = ticks;
+    update_next_tick_to_awake (ticks);
+  }
+  list_push_back (&sleep_list, &(t->elem));
+
+  thread_block ();
+
+  intr_set_level (old_level);
+}
+
+void
+thread_awake (int64_t ticks)
+{
+  struct list_elem *e = NULL;
+  struct thread *t = NULL;
+  for (e = list_begin (&sleep_list); e != list_end (&sleep_list); e = list_next (e))
+  {
+    t = list_entry (e, struct thread, elem);
+    if (t->wakeup_tick <= ticks)
+    {
+      e = list_prev(e);
+      list_remove (e->next);
+      thread_unblock(t);
+    }
+    else
+      update_next_tick_to_awake(ticks);
+  }
+}
+
+void
+update_next_tick_to_awake (int64_t ticks)
+{
+  if (ticks < get_next_tick_to_awake())
+    next_tick_to_awake = ticks;
+}
+
+int64_t
+get_next_tick_to_awake (void)
+{
+  return next_tick_to_awake;
+}
