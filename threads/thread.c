@@ -478,6 +478,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  // Priority Inversion Problem
+  t->init_priority = priority;
+  list_init (&t->donations);
+  lock_init (&t->wait_on_lock);
+  
   list_push_back (&all_list, &t->allelem);
 }
 
@@ -671,4 +676,20 @@ cmp_priority (const struct list_elem *a_,
     return true;
   else
     return false;
+}
+
+// Priority Inversion Problem
+void donate_priority(void)
+{
+
+}
+
+void remove_with_lock(struct lock *lock)
+{
+
+}
+
+void refresh_priority(void)
+{
+
 }

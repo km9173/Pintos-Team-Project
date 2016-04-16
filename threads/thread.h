@@ -89,6 +89,11 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
+    // Priority Inversion Problem
+    int init_priority;                  /* Initial priority */
+    struct lock *wait_on_lock;          /* Lock which this thread waiting */
+    struct list donations;              /* for Multiple donations */
+    struct list_elem donation_elem;     /* for Multiple donations */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
@@ -150,5 +155,11 @@ int64_t get_next_tick_to_awake (void);  /* return next_tick_to_awake value */
 void test_max_priority (void);
 // compare two threads, a and b, then return true if a > b, or return false if a <= b.
 bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+
+// Priority Inversion Problem
+void donate_priority(void);                 /* Priority donation */
+void remove_with_lock(struct lock *lock);   /* Remove thread entry from donation list*/
+void refresh_priority(void);                /* Recalaulate priority */
+
 
 #endif /* threads/thread.h */
