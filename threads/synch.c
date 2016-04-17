@@ -204,7 +204,17 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  // Priority Inversion Problem
+  if (lock->holder)
+  {
+    ASSERT (list_size (lock->holder) < 8);
+
+    thread_current ()->wait_on_lock = lock;
+    donate_priority ();
+  }
+
   sema_down (&lock->semaphore);
+  thread_current->wait_on_lock = NULL;  // Priority Inversion Problem
   lock->holder = thread_current ();
 }
 
@@ -239,7 +249,11 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  // Priority Inversion Problem
   lock->holder = NULL;
+  remove_with_lock (lock);
+  refresh_priority ();
+
   sema_up (&lock->semaphore);
 }
 

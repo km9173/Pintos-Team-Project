@@ -351,7 +351,20 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
+  /* donation 을 고려하여 thread_set_priority() 함수를 수정한다 */
+  /* refresh_priority() 함수를 사용하여 우선순위를 변경으로 인한 donation 관련 정보를 갱신한다.
+  donate_priority(), test_max_pariority() 함수를 적절히 사용하여
+  priority donation 을 수행하고 스케줄링 한다. */
+  int old_priority = thread_current ()->priority;
   thread_current ()->priority = new_priority;
+
+  // Priority Inversion Problem
+  if (list_size (thread_current ()->donations))
+  {
+    refresh_priority ();
+    donate_priority ();
+  }
+
   test_max_priority ();
 }
 
@@ -679,17 +692,51 @@ cmp_priority (const struct list_elem *a_,
 }
 
 // Priority Inversion Problem
-void donate_priority(void)
+void
+donate_priority (void)
 {
+  struct lock target = current_thread ()->wait_on_lock;
+  int depth = 0, limit = 8;
+  if (!target)
+    return;
 
+  while (depth < limit) {
+    depth++;
+    target.holder->priority = current_thread ()->priority;
+    target = target.holder->wait_on_lock;
+  }
 }
 
-void remove_with_lock(struct lock *lock)
+void
+remove_with_lock (struct lock *lock)
 {
+  struct list_elem *it;
+  struct thread *check_t;
 
+  for (it = list_begin (&lock->holder->donations);
+       it != list_end (&lock->holder->donations); it = list_next (it))
+  {
+    check_t = list_entry (it, struct thread, donation_elem);
+    if (check_t->wait_on_lock == lock) {
+      check_t->wait_on_lock = NULL;
+      list_remove (&check_t->donation_elem);
+    }
+  }
 }
 
-void refresh_priority(void)
+void
+refresh_priority(void)
 {
+  struct list_elem *it;
+  struct thread *check_t;
+  int max = current_thread ()->priority;
 
+  for (it = list_begin (&current_thread ()->donations);
+       it != list_end (&current_thread ()->donations); it = list_next (it))
+  {
+    check_t = list_entry (it, struct thread, donation_elem);
+    if (max < check_t->priority)
+      max = check_t->priority;
+  }
+  current_thread ()->priority = max;
 }
