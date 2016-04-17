@@ -359,11 +359,16 @@ thread_set_priority (int new_priority)
   thread_current ()->priority = new_priority;
 
   // Priority Inversion Problem
-  if (list_size (thread_current ()->donations))
+  if (thread_current ()->priority > new_priority)
   {
-    refresh_priority ();
-    donate_priority ();
+
   }
+  if (thread_current ()->priority < new_priority)
+  {
+    
+  }
+  refresh_priority ();
+  donate_priority ();
 
   test_max_priority ();
 }
