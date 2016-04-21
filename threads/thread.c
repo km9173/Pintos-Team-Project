@@ -700,15 +700,15 @@ cmp_priority (const struct list_elem *a_,
 void
 donate_priority (void)
 {
-  struct lock target = current_thread ()->wait_on_lock;
+  struct lock *target = thread_current ()->wait_on_lock;
   int depth = 0, limit = 8;
   if (!target)
     return;
 
   while (depth < limit) {
     depth++;
-    target.holder->priority = current_thread ()->priority;
-    target = target.holder->wait_on_lock;
+    target->holder->priority = thread_current ()->priority;
+    target = target->holder->wait_on_lock;
   }
 }
 
@@ -734,14 +734,14 @@ refresh_priority(void)
 {
   struct list_elem *it;
   struct thread *check_t;
-  int max = current_thread ()->priority;
+  int max = thread_current ()->priority;
 
-  for (it = list_begin (&current_thread ()->donations);
-       it != list_end (&current_thread ()->donations); it = list_next (it))
+  for (it = list_begin (&thread_current ()->donations);
+       it != list_end (&thread_current ()->donations); it = list_next (it))
   {
     check_t = list_entry (it, struct thread, donation_elem);
     if (max < check_t->priority)
       max = check_t->priority;
   }
-  current_thread ()->priority = max;
+  thread_current ()->priority = max;
 }
