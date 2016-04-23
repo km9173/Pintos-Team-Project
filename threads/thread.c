@@ -64,6 +64,12 @@ int64_t next_tick_to_awake = INT64_MAX; /* minimal tick of wakeup tick in sleep_
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+// MLFQ
+#define NICE_DEFAULT 0
+#define RECENT_CPU_DEFAULT 0
+#define LOAD_AVG_DEFAULT 0
+int load_avg;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -115,6 +121,7 @@ thread_start (void)
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
+  load_avg = LOAD_AVG_DEFAULT;
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
@@ -374,14 +381,19 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED)
 {
-  /* Not yet implemented. */
+  /* 현제 스레드의 nice값을 변경하는 함수를 구현하다.
+  해당 작업중에 인터럽트는 비활성화 해야 한다. */
+  /* 현제 스레드의 nice 값을 변경한다.
+  nice 값 변경 후에 현재 스레드의 우선순위를 재계산 하고
+  우선순위에 의해 스케줄링 한다. */
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void)
 {
-  /* Not yet implemented. */
+  /* 현재 스레드의 nice 값을 반환한다.
+  해당 작업중에 인터럽트는 비활성되어야 한다. */
   return 0;
 }
 
@@ -389,7 +401,8 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void)
 {
-  /* Not yet implemented. */
+  /* load_avg에 100을 곱해서 반환 한다.
+  해당 과정중에 인터럽트는 비활성되어야 한다. */
   return 0;
 }
 
@@ -397,7 +410,8 @@ thread_get_load_avg (void)
 int
 thread_get_recent_cpu (void)
 {
-  /* Not yet implemented. */
+  /* recent_cpu 에 100을 곱해서 반환 한다.
+  해당 과정중에 인터럽트는 비활성되어야 한다. */
   return 0;
 }
 
@@ -489,6 +503,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->init_priority = priority;
   list_init (&t->donations);
   t->wait_on_lock = NULL;
+  // MLFQ
+  t->nice = NICE_DEFAULT;
+  t->recent_cpu = RECENT_CPU_DEFAULT;
 
   list_push_back (&all_list, &t->allelem);
 }
@@ -734,4 +751,39 @@ refresh_priority(void)
       max = check_t->priority;
   }
   thread_current ()->priority = max;
+}
+
+// MLFQ
+void
+mlfqs_priority (struct thread *t)
+{
+  /* 해당 스레드가 idle_thread 가 아닌지 검사 */
+  /*priority계산식을 구현 (fixed_point.h의 계산함수 이용)*/
+}
+
+void
+mlfqs_recent_cpu (struct thread *t)
+{
+  /* 해당 스레드가 idle_thread 가 아닌지 검사 */
+  /*recent_cpu계산식을 구현 (fixed_point.h의 계산함수 이용)*/
+}
+
+void
+mlfqs_load_avg (void)
+{
+  /* load_avg계산식을 구현 (fixed_point.h의 계산함수 이용) */
+  /* load_avg 는 0 보다 작아질 수 없다.*/
+}
+
+void
+mlfqs_increment (void)
+{
+  /* 해당 스레드가 idle_thread 가 아닌지 검사 */
+  /* 현재 스레드의 recent_cpu 값을 1증가 시킨다. */
+}
+
+void
+mlfqs_recalc (void)
+{
+  /* 모든 thread의 recent_cpu와 priority값 재계산 한다. */
 }

@@ -204,6 +204,8 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  /* mlfqs 스케줄러 활성화시 priority donation 관련 코드 비활성화 */
+
   if (lock->holder != NULL)
   {
     if (list_size (&lock->holder->donations) < 8)
@@ -249,6 +251,8 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
+
+  /* mlfqs 스케줄러 활성화시 priority donation 관련 코드 비활성화 */
 
   lock->holder = NULL;
   remove_with_lock (lock);
