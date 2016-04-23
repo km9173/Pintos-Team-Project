@@ -212,7 +212,7 @@ lock_acquire (struct lock *lock)
     // {
     thread_current ()->wait_on_lock = lock;
     // lock->holder->init_priority = lock->holder->priority;
-    list_push_back (lock->holder->donations, &thread_current ()->donation_elem);
+    list_push_back (&lock->holder->donations, &thread_current ()->donation_elem);
     donate_priority ();
     // }
   }
