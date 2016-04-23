@@ -386,6 +386,14 @@ thread_set_nice (int nice UNUSED)
   /* 현제 스레드의 nice 값을 변경한다.
   nice 값 변경 후에 현재 스레드의 우선순위를 재계산 하고
   우선순위에 의해 스케줄링 한다. */
+  old_level = intr_disable ();
+
+  // Q. thread_set_nice 함수의 인자 nice를 현재 쓰레드에 적용시키는데
+  // 왜 UNUSED FLAG가 적용이 되어있는지?
+  thread_current ()->nice = nice;
+  refresh_priority(); // TODO : 현재 스레드의 우선순위 재계산
+  test_max_priority(); // TODO : 스케쥴링
+  intr_set_level (old_level);
 }
 
 /* Returns the current thread's nice value. */
