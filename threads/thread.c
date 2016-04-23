@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/fixed_point.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -427,11 +428,11 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void)
 {
-  int 100x_load_avg;
+  int load_avg_cur;
   enum intr_level old_level = intr_disable ();
-  100x_load_avg = fp_to_int_round (load_avg * 100);
+  load_avg_cur = fp_to_int_round (load_avg * 100);
   intr_set_level (old_level);
-  return 100x_load_avg;
+  return load_avg_cur;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -794,7 +795,7 @@ void
 mlfqs_priority (struct thread *t)
 {
   if (t != idle_thread)
-    t->priority = add_mixed (mult_fp (-1, add_fp (div_mixed (t->recent_cpu, 4), mult_mixed (nice, 2))), PRI_MAX);
+    t->priority = add_mixed (mult_fp (-1, add_fp (div_mixed (t->recent_cpu, 4), mult_mixed (t->nice, 2))), PRI_MAX);
 }
 
 void
@@ -836,7 +837,7 @@ mlfqs_increment (void)
   /* 해당 스레드가 idle_thread 가 아닌지 검사 */
   /* 현재 스레드의 recent_cpu 값을 1증가 시킨다. */
   struct thread *cur = thread_current ();
-  if (t != idle_thread)
+  if (cur != idle_thread)
     cur->recent_cpu = add_mixed (cur->recent_cpu, 1);
 }
 
