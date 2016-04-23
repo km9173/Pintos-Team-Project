@@ -356,19 +356,14 @@ thread_set_priority (int new_priority)
   donate_priority(), test_max_pariority() 함수를 적절히 사용하여
   priority donation 을 수행하고 스케줄링 한다. */
   int old_priority = thread_current ()->priority;
-  thread_current ()->priority = new_priority;
 
   // Priority Inversion Problem
-  if (thread_current ()->priority > new_priority)
-  {
-
-  }
-  if (thread_current ()->priority < new_priority)
-  {
-    
-  }
+  if (old_priority == new_priority)
+    return;
+  thread_current ()->priority = new_priority;
   refresh_priority ();
-  donate_priority ();
+  if (thread_current ()->wait_on_lock)
+    donate_priority ();
 
   test_max_priority ();
 }

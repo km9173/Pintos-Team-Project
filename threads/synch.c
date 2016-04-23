@@ -205,23 +205,16 @@ lock_acquire (struct lock *lock)
   ASSERT (!lock_held_by_current_thread (lock));
 
   // Priority Inversion Problem
-  printf("1\n");
   if (lock->holder)
   {
-  printf("2\n");
     ASSERT (list_size (&lock->holder->donations) < 8);
 
-  printf("3\n");
     thread_current ()->wait_on_lock = lock;
-  printf("4\n");
     donate_priority ();
   }
 
-  printf("5\n");
   sema_down (&lock->semaphore);
-  printf("6\n");
   thread_current ()->wait_on_lock = NULL;  // Priority Inversion Problem
-  printf("7\n");
   lock->holder = thread_current ();
 }
 
@@ -258,8 +251,8 @@ lock_release (struct lock *lock)
 
   // Priority Inversion Problem
   lock->holder = NULL;
-  remove_with_lock (lock);
-  refresh_priority ();
+  // remove_with_lock (lock);
+  // refresh_priority ();
 
   sema_up (&lock->semaphore);
 }
