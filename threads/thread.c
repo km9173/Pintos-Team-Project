@@ -386,14 +386,21 @@ thread_set_nice (int nice UNUSED)
   /* 현제 스레드의 nice 값을 변경한다.
   nice 값 변경 후에 현재 스레드의 우선순위를 재계산 하고
   우선순위에 의해 스케줄링 한다. */
+  enum intr_level old_level;
   old_level = intr_disable ();
 
   // Q. thread_set_nice 함수의 인자 nice를 현재 쓰레드에 적용시키는데
   // 왜 UNUSED FLAG가 적용이 되어있는지?
   thread_current ()->nice = nice;
   refresh_priority(); // TODO : 현재 스레드의 우선순위 재계산
-  test_max_priority(); // TODO : 스케쥴링
   intr_set_level (old_level);
+
+  // test_max_priority 함수 내부에서 interrupt를 disabled 시켜버리는
+  // thread_yield 함수를 호출하기 때문에 이전에 intr_set_level를 통해 interrupt를
+  // 시작해준다.
+  // 무지하게 찝찝하지만, 적어도 refresh_priority 함수가 호출되는 중에는
+  // interrupt가 disabled 되어있으니 괜찮을거 같다.
+  test_max_priority(); // TODO : 스케쥴링
 }
 
 /* Returns the current thread's nice value. */
@@ -402,7 +409,15 @@ thread_get_nice (void)
 {
   /* 현재 스레드의 nice 값을 반환한다.
   해당 작업중에 인터럽트는 비활성되어야 한다. */
-  return 0;
+  enum intr_level old_level;
+  struct thread *cur = NULL;
+  int nice_cur = 0;
+
+  old_level = intr_disable ();
+  cur = thread_current();
+  nice_cur = cur->nice;
+  intr_set_level (old_level);
+  return nice_cur;
 }
 
 /* Returns 100 times the system load average. */
@@ -420,6 +435,7 @@ thread_get_recent_cpu (void)
 {
   /* recent_cpu 에 100을 곱해서 반환 한다.
   해당 과정중에 인터럽트는 비활성되어야 한다. */
+
   return 0;
 }
 
