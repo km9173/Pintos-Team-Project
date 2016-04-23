@@ -204,7 +204,6 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  // Priority Inversion Problem
   if (lock->holder != NULL)
   {
     if (list_size (&lock->holder->donations) < 8)
@@ -251,7 +250,6 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  // Priority Inversion Problem
   lock->holder = NULL;
   remove_with_lock (lock);
   refresh_priority ();

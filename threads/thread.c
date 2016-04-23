@@ -351,13 +351,8 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  /* donation 을 고려하여 thread_set_priority() 함수를 수정한다 */
-  /* refresh_priority() 함수를 사용하여 우선순위를 변경으로 인한 donation 관련 정보를 갱신한다.
-  donate_priority(), test_max_pariority() 함수를 적절히 사용하여
-  priority donation 을 수행하고 스케줄링 한다. */
   int old_priority = thread_current ()->priority;
 
-  // Priority Inversion Problem
   if (old_priority == new_priority)
     return ;
   thread_current ()->init_priority = new_priority;
@@ -491,7 +486,6 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-  // Priority Inversion Problem
   t->init_priority = priority;
   list_init (&t->donations);
   t->wait_on_lock = NULL;
@@ -691,7 +685,6 @@ cmp_priority (const struct list_elem *a_,
     return false;
 }
 
-// Priority Inversion Problem
 void
 donate_priority (void)
 {
