@@ -396,7 +396,8 @@ thread_set_nice (int nice UNUSED)
   // Q. thread_set_nice 함수의 인자 nice를 현재 쓰레드에 적용시키는데
   // 왜 UNUSED FLAG가 적용이 되어있는지?
   thread_current ()->nice = nice;
-  refresh_priority (); // TODO : 현재 스레드의 우선순위 재계산
+  // refresh_priority (); // TODO : 현재 스레드의 우선순위 재계산
+  mlfqs_priority (thread_current ());
   intr_set_level (old_level);
 
   // test_max_priority 함수 내부에서 interrupt를 disabled 시켜버리는
@@ -447,7 +448,8 @@ thread_get_recent_cpu (void)
 
   old_level = intr_disable ();
   cur = thread_current ();
-  recent_cpu_cur = mult_mixed(cur->recent_cpu, 100);
+  //recent_cpu_cur = mult_mixed(cur->recent_cpu, 100);
+  recent_cpu_cur = fp_to_int_round (cur->recent_cpu * 100);
   intr_set_level (old_level);
 
   return recent_cpu_cur;
@@ -795,7 +797,7 @@ void
 mlfqs_priority (struct thread *t)
 {
   if (t != idle_thread)
-    t->priority = add_mixed (mult_fp (-1, add_fp (div_mixed (t->recent_cpu, 4), mult_mixed (t->nice, 2))), PRI_MAX);
+    t->priority = add_mixed (mult_mixed (add_mixed (div_mixed (t->recent_cpu, 4), t->nice * 2), -1), PRI_MAX);
 }
 
 void
@@ -803,23 +805,24 @@ mlfqs_recent_cpu (struct thread *t)
 {
   /* 해당 스레드가 idle_thread 가 아닌지 검사 */
   /*recent_cpu계산식을 구현 (fixed_point.h의 계산함수 이용)*/
-  int load_avg;
+  // int load_avg;
   if (t != idle_thread)
   {
-    load_avg = thread_get_load_avg();
-    int two_p_load_avg = mult_mixed(load_avg, 2);
-    t->recent_cpu = add_mixed(
-      mult_fp(
-        div_fp(
-          two_p_load_avg,
-          add_mixed(two_p_load_avg, 1)
-        ),
-        t->recent_cpu),
-      t->nice
-    );
+    t->recent_cpu = add_mixed (div_fp (mult_fp (mult_mixed (load_avg, 2), t->recent_cpu), mult_mixed (load_avg, 2) + F), t->nice);
+    // load_avg = thread_get_load_avg();
+    // int two_p_load_avg = mult_mixed(load_avg, 2);
+    // t->recent_cpu = add_mixed(
+    //   mult_fp(
+    //     div_fp(
+    //       two_p_load_avg,
+    //       add_mixed(two_p_load_avg, 1)
+    //     ),
+    //     t->recent_cpu),
+    //   t->nice
+    // );
   }
 }
-  // recent_cpu : add_fp (nice, div_fp (mult_fp (mult_mixed (load_avg, 2), recent_cpu), mult_mixed (load_avg, 2) + F));
+  // recent_cpu : add_mixed (div_fp (mult_fp (mult_mixed (load_avg, 2), t->recent_cpu), mult_mixed (load_avg, 2) + F), t->nice);
 
 void
 mlfqs_load_avg (void)

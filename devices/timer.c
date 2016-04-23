@@ -175,6 +175,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
 
   if (thread_mlfqs)
   {
+    mlfqs_increment ();
     if (!(ticks % 4))
       mlfqs_priority (thread_current ());
     if (!(ticks % 100))
