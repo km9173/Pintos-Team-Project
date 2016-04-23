@@ -827,6 +827,9 @@ mlfqs_increment (void)
 {
   /* 해당 스레드가 idle_thread 가 아닌지 검사 */
   /* 현재 스레드의 recent_cpu 값을 1증가 시킨다. */
+  struct thread *cur = thread_current ();
+  if (t != idle_thread)
+    cur->recent_cpu = add_mixed (cur->recent_cpu, 1);
 }
 
 void
