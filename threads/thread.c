@@ -441,7 +441,7 @@ thread_get_recent_cpu (void)
 
   old_level = intr_disable ();
   cur = thread_current ();
-  recent_cpu_cur = cur->recent_cpu * 100;
+  recent_cpu_cur = mult_mixed(cur->recent_cpu, 100);
   intr_set_level (old_level);
 
   return recent_cpu_cur;
