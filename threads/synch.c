@@ -251,10 +251,10 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  lock->holder = NULL;
   /* mlfqs 스케줄러 활성화시 priority donation 관련 코드 비활성화 */
   if (!thread_mlfqs)
   {
-    lock->holder = NULL;
     remove_with_lock (lock);
     refresh_priority ();
   }
