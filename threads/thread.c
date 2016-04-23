@@ -720,10 +720,8 @@ remove_with_lock (struct lock *lock)
        it != list_end (&cur->donations); it = list_next (it))
   {
     check_t = list_entry (it, struct thread, donation_elem);
-    if (check_t->wait_on_lock == lock) {
-    //   check_t->wait_on_lock = NULL;
+    if (check_t->wait_on_lock == lock)
       list_remove (&check_t->donation_elem);
-    }
   }
 }
 
@@ -734,7 +732,6 @@ refresh_priority(void)
   struct thread *cur = thread_current ();
   struct thread *check_t;
   int max = cur->init_priority;
-  // cur->priority = cur->init_priority;
 
   for (it = list_begin (&thread_current ()->donations);
        it != list_end (&thread_current ()->donations); it = list_next (it))
