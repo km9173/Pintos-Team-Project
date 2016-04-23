@@ -798,6 +798,21 @@ mlfqs_recent_cpu (struct thread *t)
 {
   /* 해당 스레드가 idle_thread 가 아닌지 검사 */
   /*recent_cpu계산식을 구현 (fixed_point.h의 계산함수 이용)*/
+  int load_avg;
+  if (t != idle_thread)
+  {
+    load_avg = thread_get_load_avg();
+    int two_p_load_avg = mult_mixed(load_avg, 2);
+    t->recent_cpu = add_mixed(
+      mult_fp(
+        div_fp(
+          two_p_load_avg,
+          add_mixed(two_p_load_avg, 1)
+        ),
+        t->recent_cpu),
+      t->nice
+    );
+  }
 }
 
 void
