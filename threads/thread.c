@@ -797,7 +797,7 @@ void
 mlfqs_priority (struct thread *t)
 {
   if (t != idle_thread)
-    t->priority = add_mixed (mult_mixed (add_mixed (div_mixed (t->recent_cpu, 4), t->nice * 2), -1), PRI_MAX);
+    t->priority = PRI_MAX - fp_to_int_round (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
 }
 
 void
