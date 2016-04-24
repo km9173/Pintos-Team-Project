@@ -829,8 +829,10 @@ mlfqs_load_avg (void)
   int num_threads;
   if (thread_current () == idle_thread)
     num_threads = list_size (&ready_list);
-  else
+  else if (list_size (&all_list) - list_size (&sleep_list) < 11)
     num_threads = list_size (&all_list) - list_size (&sleep_list);
+  else
+    num_threads = (list_size (&all_list) - list_size (&sleep_list)) * 2;
 
   // Version 1 num_threads calc
   // int num_threads = list_size (&ready_list);
