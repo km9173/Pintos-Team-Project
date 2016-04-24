@@ -826,8 +826,10 @@ mlfqs_recent_cpu (struct thread *t)
 void
 mlfqs_load_avg (void)
 {
-  int num_threads = list_size (&ready_list); // + 1;
+  int num_threads = list_size (&ready_list) + 1;
 
+  // printf("num_threads : %d\n", num_threads);
+  // load_avg = add_fp(div_fp(mult_mixed (load_avg, 59), 60), div_mixed(int_to_fp(num_threads), 60));
   //load_avg = div_mixed (add_mixed (mult_mixed (load_avg, 59), num_threads), 60);
   load_avg = add_fp (mult_fp (div_mixed (int_to_fp (59), 60), load_avg), mult_mixed (div_mixed (int_to_fp (1), 60), num_threads));
   if (load_avg < 0)
