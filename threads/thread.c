@@ -431,7 +431,7 @@ thread_get_load_avg (void)
 {
   int load_avg_cur;
   enum intr_level old_level = intr_disable ();
-  load_avg_cur = fp_to_int_round (load_avg * 100);
+  load_avg_cur = fp_to_int_round (mult_mixed(load_avg, 100));
   intr_set_level (old_level);
   return load_avg_cur;
 }
@@ -449,7 +449,7 @@ thread_get_recent_cpu (void)
   old_level = intr_disable ();
   cur = thread_current ();
   //recent_cpu_cur = mult_mixed(cur->recent_cpu, 100);
-  recent_cpu_cur = fp_to_int_round (cur->recent_cpu * 100);
+  recent_cpu_cur = fp_to_int_round (mult_mixed(cur->recent_cpu, 100));
   intr_set_level (old_level);
 
   return recent_cpu_cur;
@@ -797,8 +797,8 @@ void
 mlfqs_priority (struct thread *t)
 {
   if (t != idle_thread)
-    //t->priority = PRI_MAX - fp_to_int_round (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
     t->priority = PRI_MAX - fp_to_int (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
+  //t->priority = PRI_MAX - fp_to_int_round (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
 }
 
 void
@@ -808,14 +808,15 @@ mlfqs_recent_cpu (struct thread *t)
   /*recent_cpu계산식을 구현 (fixed_point.h의 계산함수 이용)*/
   if (t != idle_thread)
   {
-    int two_p_load_avg = mult_mixed (load_avg, 2);
-    t->recent_cpu = add_mixed(
-      mult_fp(
-        div_fp(
-          two_p_load_avg,
-          add_mixed(two_p_load_avg, 1)
+    int two_m_load_avg = mult_mixed (load_avg, 2);
+    t->recent_cpu = add_mixed (
+      mult_fp (
+        div_fp (
+          two_m_load_avg,
+          add_mixed (two_m_load_avg, 1)
         ),
-        t->recent_cpu),
+        t->recent_cpu
+      ),
       t->nice
     );
   }
@@ -825,7 +826,7 @@ mlfqs_recent_cpu (struct thread *t)
 void
 mlfqs_load_avg (void)
 {
-  int num_threads = list_size (&ready_list) + 1;
+  int num_threads = list_size (&ready_list); // + 1;
 
   //load_avg = div_mixed (add_mixed (mult_mixed (load_avg, 59), num_threads), 60);
   load_avg = add_fp (mult_fp (div_mixed (int_to_fp (59), 60), load_avg), mult_mixed (div_mixed (int_to_fp (1), 60), num_threads));
@@ -851,7 +852,7 @@ mlfqs_recalc (void)
 
   for (it = list_begin (&all_list); it != list_end (&all_list); it = list_next (it))
   {
-    e = list_entry (it, struct thread, elem);
+    e = list_entry (it, struct thread, allelem);
     mlfqs_recent_cpu (e);
     mlfqs_priority (e);
   }
