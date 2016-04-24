@@ -797,7 +797,8 @@ void
 mlfqs_priority (struct thread *t)
 {
   if (t != idle_thread)
-    t->priority = PRI_MAX - fp_to_int_round (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
+    //t->priority = PRI_MAX - fp_to_int_round (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
+    t->priority = PRI_MAX - fp_to_int (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
 }
 
 void
@@ -819,14 +820,15 @@ mlfqs_recent_cpu (struct thread *t)
     );
   }
 }
-  // recent_cpu : add_mixed (div_fp (mult_fp (mult_mixed (load_avg, 2), t->recent_cpu), mult_mixed (load_avg, 2) + F), t->nice);
+  // t->recent_cpu = add_mixed (mult_fp (div_fp (mult_mixed (load_avg, 2), add_mixed (mult_mixed (load_avg, 2), 1)), t->recent_cpu), t->nice);
 
 void
 mlfqs_load_avg (void)
 {
   int num_threads = list_size (&ready_list) + 1;
 
-  load_avg = div_mixed (add_mixed (mult_mixed (load_avg, 59), num_threads), 60);
+  //load_avg = div_mixed (add_mixed (mult_mixed (load_avg, 59), num_threads), 60);
+  load_avg = add_fp (mult_fp (div_mixed (int_to_fp (59), 60), load_avg), mult_mixed (div_mixed (int_to_fp (1), 60), num_threads));
   if (load_avg < 0)
     load_avg = 0;
 }
