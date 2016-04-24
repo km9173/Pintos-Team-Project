@@ -832,6 +832,24 @@ mlfqs_load_avg (void)
   else
     num_threads = list_size (&all_list) - list_size (&sleep_list);
 
+  // Version 1 num_threads calc
+  // int num_threads = list_size (&ready_list);
+  // if (thread_current () != idle_thread)
+  //   num_threads++;
+
+  // Version 2 num_threads calc
+  // int num_threads = 0;
+  //
+  // for (it = list_begin (&all_list); it != list_end (&all_list); it = list_next (it))
+  // {
+  //   e = list_entry (it, struct thread, allelem);
+  //   if (e != idle_thread)
+  //   {
+  //     if (e->status == THREAD_RUNNING || e->status == THREAD_READY)
+  //       num_threads++;
+  //   }
+  // }
+
   // printf("num_threads : %d\n", num_threads);
   // load_avg = add_fp(div_fp(mult_mixed (load_avg, 59), 60), div_mixed(int_to_fp(num_threads), 60));
   //load_avg = div_mixed (add_mixed (mult_mixed (load_avg, 59), num_threads), 60);
