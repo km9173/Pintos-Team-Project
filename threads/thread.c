@@ -393,19 +393,11 @@ thread_set_nice (int nice UNUSED)
   enum intr_level old_level;
   old_level = intr_disable ();
 
-  // Q. thread_set_nice 함수의 인자 nice를 현재 쓰레드에 적용시키는데
-  // 왜 UNUSED FLAG가 적용이 되어있는지?
   thread_current ()->nice = nice;
-  // refresh_priority (); // TODO : 현재 스레드의 우선순위 재계산
   mlfqs_priority (thread_current ());
   intr_set_level (old_level);
 
-  // test_max_priority 함수 내부에서 interrupt를 disabled 시켜버리는
-  // thread_yield 함수를 호출하기 때문에 이전에 intr_set_level를 통해 interrupt를
-  // 시작해준다.
-  // 무지하게 찝찝하지만, 적어도 refresh_priority 함수가 호출되는 중에는
-  // interrupt가 disabled 되어있으니 괜찮을거 같다.
-  test_max_priority (); // TODO : 스케쥴링
+  test_max_priority ();
 }
 
 /* Returns the current thread's nice value. */
@@ -448,7 +440,6 @@ thread_get_recent_cpu (void)
 
   old_level = intr_disable ();
   cur = thread_current ();
-  //recent_cpu_cur = mult_mixed(cur->recent_cpu, 100);
   recent_cpu_cur = fp_to_int_round (mult_mixed(cur->recent_cpu, 100));
   intr_set_level (old_level);
 
@@ -798,7 +789,6 @@ mlfqs_priority (struct thread *t)
 {
   if (t != idle_thread)
     t->priority = PRI_MAX - fp_to_int (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
-  //t->priority = PRI_MAX - fp_to_int_round (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
 }
 
 void
@@ -821,32 +811,14 @@ mlfqs_recent_cpu (struct thread *t)
     );
   }
 }
-  // t->recent_cpu = add_mixed (mult_fp (div_fp (mult_mixed (load_avg, 2), add_mixed (mult_mixed (load_avg, 2), 1)), t->recent_cpu), t->nice);
 
 void
 mlfqs_load_avg (void)
 {
-  // Version 1 num_threads calc
   int num_threads = list_size (&ready_list);
   if (thread_current () != idle_thread)
     num_threads++;
 
-  // Version 2 num_threads calc
-  // int num_threads = 0;
-  //
-  // for (it = list_begin (&all_list); it != list_end (&all_list); it = list_next (it))
-  // {
-  //   e = list_entry (it, struct thread, allelem);
-  //   if (e != idle_thread)
-  //   {
-  //     if (e->status == THREAD_RUNNING || e->status == THREAD_READY)
-  //       num_threads++;
-  //   }
-  // }
-
-  // printf("num_threads : %d\n", num_threads);
-  // load_avg = add_fp(div_fp(mult_mixed (load_avg, 59), 60), div_mixed(int_to_fp(num_threads), 60));
-  //load_avg = div_mixed (add_mixed (mult_mixed (load_avg, 59), num_threads), 60);
   load_avg = add_fp (mult_fp (div_mixed (int_to_fp (59), 60), load_avg), mult_mixed (div_mixed (int_to_fp (1), 60), num_threads));
   if (fp_to_int (load_avg) < 0)
     load_avg = 0;
