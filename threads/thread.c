@@ -378,7 +378,15 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  thread_current ()->priority = new_priority;
+  int old_priority = thread_current ()->priority;
+
+  if (old_priority == new_priority)
+    return ;
+  thread_current ()->init_priority = new_priority;
+  refresh_priority ();
+  if (thread_current ()->wait_on_lock != NULL)
+    donate_priority ();
+
   test_max_priority ();
 }
 
@@ -505,6 +513,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  t->init_priority = priority;
+  list_init (&t->donations);
+  t->wait_on_lock = NULL;
+
   list_push_back (&all_list, &t->allelem);
 
   // Initialize child list
@@ -701,4 +713,55 @@ cmp_priority (const struct list_elem *a_,
     return true;
   else
     return false;
+}
+
+void
+donate_priority (void)
+{
+  struct thread *cur  = NULL;
+  struct lock *target = NULL;
+  int depth = 0, limit = 8;
+
+  cur = thread_current ();
+  target = cur->wait_on_lock;
+
+  while (target != NULL && depth < limit) {
+    depth++;
+    target->holder->priority = cur->priority;
+    target = target->holder->wait_on_lock;
+  }
+}
+
+void
+remove_with_lock (struct lock *lock)
+{
+  struct list_elem *it;
+  struct thread *cur = thread_current ();
+  struct thread *check_t = NULL;
+
+  for (it = list_begin (&cur->donations);
+       it != list_end (&cur->donations); it = list_next (it))
+  {
+    check_t = list_entry (it, struct thread, donation_elem);
+    if (check_t->wait_on_lock == lock)
+      list_remove (&check_t->donation_elem);
+  }
+}
+
+void
+refresh_priority(void)
+{
+  struct list_elem *it;
+  struct thread *cur = thread_current ();
+  struct thread *check_t;
+  int max = cur->init_priority;
+
+  for (it = list_begin (&thread_current ()->donations);
+       it != list_end (&thread_current ()->donations); it = list_next (it))
+  {
+    check_t = list_entry (it, struct thread, donation_elem);
+    if (max < check_t->priority)
+      max = check_t->priority;
+  }
+  thread_current ()->priority = max;
 }
