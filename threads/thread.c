@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/fixed_point.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -63,6 +64,12 @@ int64_t next_tick_to_awake = INT64_MAX; /* minimal tick of wakeup tick in sleep_
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
+
+// MLFQ
+#define NICE_DEFAULT 0
+#define RECENT_CPU_DEFAULT 0
+#define LOAD_AVG_DEFAULT 0
+int load_avg;
 
 static void kernel_thread (thread_func *, void *aux);
 
@@ -118,6 +125,7 @@ thread_start (void)
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
+  load_avg = LOAD_AVG_DEFAULT;
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
@@ -383,9 +391,12 @@ thread_set_priority (int new_priority)
   if (old_priority == new_priority)
     return ;
   thread_current ()->init_priority = new_priority;
-  refresh_priority ();
-  if (thread_current ()->wait_on_lock != NULL)
-    donate_priority ();
+  if (!thread_mlfqs)
+  {
+    refresh_priority ();
+    if (thread_current ()->wait_on_lock != NULL)
+      donate_priority ();
+  }
 
   test_max_priority ();
 }
@@ -401,31 +412,65 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED)
 {
-  /* Not yet implemented. */
+  /* 현제 스레드의 nice값을 변경하는 함수를 구현하다.
+  해당 작업중에 인터럽트는 비활성화 해야 한다. */
+  /* 현제 스레드의 nice 값을 변경한다.
+  nice 값 변경 후에 현재 스레드의 우선순위를 재계산 하고
+  우선순위에 의해 스케줄링 한다. */
+  enum intr_level old_level;
+  old_level = intr_disable ();
+
+  thread_current ()->nice = nice;
+  mlfqs_priority (thread_current ());
+  intr_set_level (old_level);
+
+  test_max_priority ();
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  /* 현재 스레드의 nice 값을 반환한다.
+  해당 작업중에 인터럽트는 비활성되어야 한다. */
+  enum intr_level old_level;
+  struct thread *cur = NULL;
+  int nice_cur = 0;
+
+  old_level = intr_disable ();
+  cur = thread_current ();
+  nice_cur = cur->nice;
+  intr_set_level (old_level);
+  return nice_cur;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  int load_avg_cur;
+  enum intr_level old_level = intr_disable ();
+  load_avg_cur = fp_to_int_round (mult_mixed(load_avg, 100));
+  intr_set_level (old_level);
+  return load_avg_cur;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  /* recent_cpu 에 100을 곱해서 반환 한다.
+  해당 과정중에 인터럽트는 비활성되어야 한다. */
+  enum intr_level old_level;
+  struct thread *cur = NULL;
+  int recent_cpu_cur = 0;
+
+  old_level = intr_disable ();
+  cur = thread_current ();
+  recent_cpu_cur = fp_to_int_round (mult_mixed(cur->recent_cpu, 100));
+  intr_set_level (old_level);
+
+  return recent_cpu_cur;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -516,6 +561,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->init_priority = priority;
   list_init (&t->donations);
   t->wait_on_lock = NULL;
+  t->nice = NICE_DEFAULT;
+  t->recent_cpu = RECENT_CPU_DEFAULT;
 
   list_push_back (&all_list, &t->allelem);
 
@@ -764,4 +811,69 @@ refresh_priority(void)
       max = check_t->priority;
   }
   thread_current ()->priority = max;
+}
+
+// MLFQ
+void
+mlfqs_priority (struct thread *t)
+{
+  if (t != idle_thread)
+    t->priority = PRI_MAX - fp_to_int (div_mixed (t->recent_cpu, 4)) - t->nice * 2;
+}
+
+void
+mlfqs_recent_cpu (struct thread *t)
+{
+  /* 해당 스레드가 idle_thread 가 아닌지 검사 */
+  /*recent_cpu계산식을 구현 (fixed_point.h의 계산함수 이용)*/
+  if (t != idle_thread)
+  {
+    int two_m_load_avg = mult_mixed (load_avg, 2);
+    t->recent_cpu = add_mixed (
+      mult_fp (
+        div_fp (
+          two_m_load_avg,
+          add_mixed (two_m_load_avg, 1)
+        ),
+        t->recent_cpu
+      ),
+      t->nice
+    );
+  }
+}
+
+void
+mlfqs_load_avg (void)
+{
+  int num_threads = list_size (&ready_list);
+  if (thread_current () != idle_thread)
+    num_threads++;
+
+  load_avg = add_fp (mult_fp (div_mixed (int_to_fp (59), 60), load_avg), mult_mixed (div_mixed (int_to_fp (1), 60), num_threads));
+  if (fp_to_int (load_avg) < 0)
+    load_avg = 0;
+}
+
+void
+mlfqs_increment (void)
+{
+  /* 해당 스레드가 idle_thread 가 아닌지 검사 */
+  /* 현재 스레드의 recent_cpu 값을 1증가 시킨다. */
+  struct thread *cur = thread_current ();
+  if (cur != idle_thread)
+    cur->recent_cpu = add_mixed (cur->recent_cpu, 1);
+}
+
+void
+mlfqs_recalc (void)
+{
+  struct list_elem *it;
+  struct thread *e;
+
+  for (it = list_begin (&all_list); it != list_end (&all_list); it = list_next (it))
+  {
+    e = list_entry (it, struct thread, allelem);
+    mlfqs_recent_cpu (e);
+    mlfqs_priority (e);
+  }
 }
