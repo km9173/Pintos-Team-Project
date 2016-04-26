@@ -11,9 +11,6 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
-//
-#include <inttypes.h>
-//
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -101,9 +98,6 @@ thread_init (void)
   list_init (&ready_list);
   list_init (&sleep_list);
   list_init (&all_list);
-
-  // printf("hello thread_init\n");
-  next_tick_to_awake = INT64_MAX;
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
