@@ -340,3 +340,16 @@ close (int fd)
   process_close_file(fd);
   t->fd_size--;
 }
+
+// vm_entry
+void
+check_valid_buffer (void *buffer, unsigned size, void *esp, bool to_write)
+{
+
+}
+
+void
+check_valid_string (const void *str, void *esp)
+{
+  
+}

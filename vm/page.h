@@ -1,3 +1,5 @@
+#include <hash.h>
+
 #define	VM_BIN		0
 #define	VM_FILE		1			// Memory mapped file
 #define	VM_ANON		2			// Swapping
@@ -21,8 +23,7 @@ struct vm_entry {
 	size_t swap_slot;			// Swap slot
 
 	struct hash_elem elem;		// Hash table element
-	struct hash vm;				// Hash table 
-}
+};
 
 // II. Data Structure for vm_entry
 void vm_init (struct hash *vm);

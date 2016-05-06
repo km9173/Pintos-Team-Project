@@ -21,6 +21,7 @@
 #include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -100,6 +101,9 @@ start_process (void *file_name_)
   argv[0] = strtok_r (file_name, " ", &save_ptr);
   for (i = 1; i <= argc; i++)
     argv[i] = strtok_r (NULL, " ", &save_ptr);
+
+  // vm_entry
+  vm_init (&t->vm);
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -225,6 +229,9 @@ process_exit (void)
   {
     file_allow_write (thread_current ()->run_file);
   }
+
+  // vm_entry
+  vm_destroy (&cur->vm);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -656,4 +663,11 @@ process_close_file (int fd)
     return;
   file_close (t->fd_table[fd]);
   t->fd_table[fd] = NULL;
+}
+
+// vm_entry
+bool
+handle_mm_fault (struct vm_entry *vme)
+{
+  
 }
