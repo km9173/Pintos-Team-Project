@@ -197,7 +197,7 @@ int
 process_wait (tid_t child_tid UNUSED)
 {
   int status;
-  struct thread *t = thread_current ();
+  //struct thread *t = thread_current ();
   struct thread *child_process;
 
   child_process = get_child_process(child_tid);
@@ -574,18 +574,35 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp)
 {
-  uint8_t *kpage;
+  // uint8_t *kpage;
+  struct hash *vm = &thread_current ()->vm;
+  struct vm_entry *vme;
   bool success = false;
 
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  if (kpage != NULL)
-    {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE;
-      else
-        palloc_free_page (kpage);
-    }
+  // kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  // if (kpage != NULL)
+  //   {
+  //     success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+  //     if (success)
+  //       *esp = PHYS_BASE;
+  //     else
+  //       palloc_free_page (kpage);
+  //   }
+  //  return success;
+  vme = palloc_get_page (PAL_USER | PAL_ZERO); // Copied from upper code
+  if (vme != NULL)
+  {
+    vme->type = VM_BIN;
+    vme->vaddr = vme->file = NULL;
+    vme->writable = vme->is_loaded = false;
+    vme->offset = vme->read_bytes = 0;
+    vme->zero_bytes = 4096;
+    success = insert_vme (vm, vme);
+    if (success) // Copied from upper code
+      *esp = PHYS_BASE;
+    else
+      palloc_free_page (vme);
+  }
   return success;
 }
 

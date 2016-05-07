@@ -4,6 +4,7 @@
 
 static unsigned vm_hash_func (const struct hash_elem *e, void *aux);
 static bool vm_less_func (const struct hash_elem *a, const struct hash_elem *b);
+static bool vm_destroy_func (const struct hash_elem *e, void *aux);
 
 // II. Data Structure for vm_entry
 void
@@ -31,15 +32,10 @@ struct vm_entry
 }
 
 void
-vm_destroy (struct hash *vm)
+vm_destroy (struct hash *vm) // I'm not sure about vm_destroy_func & aux
 {
-	hash_destroy (vm, hash_delete); // I'm not sure 
-}
-
-// V. Demand paging
-bool load_file (void* kaddr, struct vm_entry *vme)
-{
-	
+	vm->aux = vm;
+	hash_destroy (vm, vm_destroy_func);
 }
 
 static unsigned
@@ -54,8 +50,20 @@ vm_less_func (const struct hash_elem *a, const struct hash_elem *b)
 	struct vm_entry *va = hash_entry(a, struct vm_entry, elem);
 	struct vm_entry *vb = hash_entry(b, struct vm_entry, elem);
 
-	if (va->vaddr < vb->vaddr)
+	return va->vaddr < vb->vaddr;
+}
+
+static bool
+vm_destroy_func (const struct hash_elem *e, void *aux)
+{	// aux used as hash
+	if (hash_delete (aux, e))
 		return true;
 	else
 		return false;
+}
+
+// V. Demand paging
+bool load_file (void* kaddr, struct vm_entry *vme)
+{
+	
 }
