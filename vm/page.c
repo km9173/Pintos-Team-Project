@@ -41,7 +41,8 @@ vm_destroy (struct hash *vm) // I'm not sure about vm_destroy_func & aux
 static unsigned
 vm_hash_func (const struct hash_elem *e, void *aux)
 {
-
+	struct vm_entry *vm_en = hash_entry(e, struct vm_entry, elem);
+	return hash_int(vm_en->vaddr);
 }
 
 static bool
