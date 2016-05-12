@@ -531,6 +531,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
 
+  struct thread *cur = thread_current();
+
   file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0)
     {
@@ -540,25 +542,39 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      /* Get a page of memory. */
-      uint8_t *kpage = palloc_get_page (PAL_USER);
-      if (kpage == NULL)
-        return false;
+      // /* Get a page of memory. */
+      // uint8_t *kpage = palloc_get_page (PAL_USER);
+      // if (kpage == NULL)
+      //   return false;
+      //
+      // /* Load this page. */
+      // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+      //   {
+      //     palloc_free_page (kpage);
+      //     return false;
+      //   }
+      // memset (kpage + page_read_bytes, 0, page_zero_bytes);
+      //
+      // /* Add the page to the process's address space. */
+      // if (!install_page (upage, kpage, writable))
+      //   {
+      //     palloc_free_page (kpage);
+      //     return false;
+      //   }
 
-      /* Load this page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
-          palloc_free_page (kpage);
-          return false;
-        }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
+      struct vm_entry *vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
+      vme->type = VM_BIN;
+      // TODO : vm_entry의 vaddr 을 어떻게 설정하는 지 조금 더 고민
+      vme->vaddr = upage;
+      vme->writable = true;
+      vme->is_loaded = false;
+      vme->file = file;
+      vme->offset = ofs;
+      vme->read_bytes = page_read_bytes;
+      vme->zero_bytes = page_zero_bytes;
+      vme->swap_slot = 0; // TODO: swap_slot size는 어떤값으로 초기화 할지..
 
-      /* Add the page to the process's address space. */
-      if (!install_page (upage, kpage, writable))
-        {
-          palloc_free_page (kpage);
-          return false;
-        }
+      insert_vme(&cur->vm, vme);
 
       /* Advance. */
       read_bytes -= page_read_bytes;
