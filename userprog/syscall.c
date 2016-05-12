@@ -377,7 +377,7 @@ check_valid_buffer (void *buffer, unsigned size, void *esp, bool to_write)
   struct vm_entry *vme = check_address (buffer, esp);
   int count = 1;
 
-  if (vme == NULL || to_write != vm->writable)
+  if (vme == NULL || to_write != vme->writable)
     exit (-1);
 
   while (size > count * 1024)
