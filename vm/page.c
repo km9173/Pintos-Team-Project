@@ -16,7 +16,9 @@ vm_init (struct hash *vm)
 bool
 insert_vme (struct hash *vm, struct vm_entry *vme)
 {
-
+	if (hash_insert (vm, vme->elem) == NULL)
+		return true;
+	return false;
 }
 
 bool
@@ -41,8 +43,8 @@ vm_destroy (struct hash *vm) // I'm not sure about vm_destroy_func & aux
 static unsigned
 vm_hash_func (const struct hash_elem *e, void *aux)
 {
-	struct vm_entry *vm_en = hash_entry(e, struct vm_entry, elem);
-	return hash_int(vm_en->vaddr);
+	struct vm_entry *vm_en = hash_entry (e, struct vm_entry, elem);
+	return hash_int (vm_en->vaddr);
 }
 
 static bool
@@ -66,5 +68,5 @@ vm_destroy_func (const struct hash_elem *e, void *aux)
 // V. Demand paging
 bool load_file (void* kaddr, struct vm_entry *vme)
 {
-	
+
 }
