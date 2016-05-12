@@ -1,5 +1,7 @@
 #include "page.h"
 #include "kernel/hash.h"
+#include "threads/thread.h"
+#include "threads/vaddr.h"
 #include "filesys/file.h"
 #include "debug.h"
 
@@ -17,7 +19,7 @@ vm_init (struct hash *vm)
 bool
 insert_vme (struct hash *vm, struct vm_entry *vme)
 {
-	if (hash_insert (vm, vme->elem) == NULL)
+	if (hash_insert (vm, &vme->elem) == NULL)
 		return true;
 	return false;
 }
@@ -31,12 +33,13 @@ delete_vme (struct hash *vm, struct vm_entry *vme)
 struct vm_entry
 *find_vme (void *vaddr)
 {
+  struct thread *cur = thread_current ();
 	struct vm_entry vm_e;
 	struct hash_elem *hash_e;
 
 	// TODO : 이런식으로 구하는게 맞는지 확인 필요!
 	vm_e.vaddr = pg_round_down (vaddr);
-	hash_e = hash_find (thread_current()->vm, vm_e);
+	hash_e = hash_find (&cur->vm, &vm_e.elem);
 
 	if (hash_e == NULL)
 		return NULL;
@@ -55,7 +58,7 @@ static unsigned
 vm_hash_func (const struct hash_elem *e, void *aux UNUSED)
 {
 	struct vm_entry *vm_en = hash_entry (e, struct vm_entry, elem);
-	return hash_int (vm_en->vaddr);
+	return hash_int ((int)vm_en->vaddr);
 }
 
 static bool

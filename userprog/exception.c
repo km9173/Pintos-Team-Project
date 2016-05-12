@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
-#include "threads/thread.h"
 #include "userprog/syscall.h"
+#include "userprog/process.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -164,8 +164,11 @@ page_fault (struct intr_frame *f)
   if (not_present)
   {
     vme = find_vme (fault_addr);
-    result = handle_mm_fault (vme);
-    // TODO : how to check if successfully load and mapping in Physical memory
+    if (vme != NULL)
+    {
+      result = handle_mm_fault (vme);
+      // TODO : how to check if successfully load and mapping in Physical memory
+    }
   }
   if (result == false)
     exit (-1);
