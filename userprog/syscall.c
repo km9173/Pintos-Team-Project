@@ -368,29 +368,30 @@ close (int fd)
 
   process_close_file(fd);
   t->fd_size--;
-}
 
 // vm_entry
+}
 void
 check_valid_buffer (void *buffer, unsigned size, void *esp, bool to_write)
 {
-  struct vm_entry *vm;
+  struct vm_entry *vme = check_address (buffer, esp);
+  int count = 1;
 
-  if (to_write != vm->writable)
+  if (vme == NULL || to_write != vm->writable)
     exit (-1);
 
-  while (size > 0)
+  while (size > count * 1024)
   {
-    vm = check_address (buffer, esp);
-    if (vm != NULL)
-      size -= 4096;
-    else
+    vme = check_address (buffer + count * 1024, esp);
+    if (vme == NULL)
       exit (-1);
+    count++;
   }
 }
 
 void
 check_valid_string (const void *str, void *esp)
 {
-
+  if (check_address (str, esp) == NULL)
+    exit (-1);
 }
