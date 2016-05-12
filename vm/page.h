@@ -1,28 +1,28 @@
 #include <hash.h>
 
-#define	VM_BIN		0
-#define	VM_FILE		1			// Memory mapped file
-#define	VM_ANON		2			// Swapping
+#define	VM_BIN	  0
+#define	VM_FILE	  1			// Memory mapped file
+#define	VM_ANON	  2			// Swapping
 
 struct vm_entry {
-	uint8_t type;				// Type of VM_BIN, FILE, ANON
-	void *vaddr;				// Virtual address 
-	bool writable;				// flag Writable to address
+  uint8_t type;				// Type of VM_BIN, FILE, ANON
+  void *vaddr;				// Virtual address 
+  bool writable;			// flag Writable to address
 
-	bool is_loaded;				// flag Physical memory 
-	struct file* file;			// Mapped file with virtual address
+  bool is_loaded;			// flag Physical memory 
+  struct file* file;		// Mapped file with virtual address
 
-	/* Memory Mapped File */
-	struct list_elem mmap_elem;
+  /* Memory Mapped File */
+  struct list_elem mmap_elem;
 
-	size_t offset;				// File offset to read
-	size_t read_bytes;			// Written data size of page
-	size_t zero_bytes;			// Remain byte to fill
+  size_t offset;			// File offset to read
+  size_t read_bytes;		// Written data size of page
+  size_t zero_bytes;		// Remain byte to fill
 
-	/* Swapping */
-	size_t swap_slot;			// Swap slot
+  /* Swapping */
+  size_t swap_slot;			// Swap slot
 
-	struct hash_elem elem;		// Hash table element
+  struct hash_elem elem;	// Hash table element
 };
 
 // II. Data Structure for vm_entry

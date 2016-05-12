@@ -310,7 +310,7 @@ thread_tid (void)
 void
 thread_exit (void)
 {
-  struct thread *t = thread_current ();
+  //struct thread *t = thread_current ();
   ASSERT (!intr_context ());
 
 #ifdef USERPROG

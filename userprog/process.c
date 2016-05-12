@@ -21,7 +21,6 @@
 #include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -574,34 +573,31 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp)
 {
-  // uint8_t *kpage;
+  uint8_t *kpage;
   struct hash *vm = &thread_current ()->vm;
-  struct vm_entry *vme;
+  struct vm_entry *vme = (struct vm_entry *)malloc (sizeof (struct vm_entry));
   bool success = false;
 
-  // kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  // if (kpage != NULL)
-  //   {
-  //     success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-  //     if (success)
-  //       *esp = PHYS_BASE;
-  //     else
-  //       palloc_free_page (kpage);
-  //   }
-  //  return success;
-  vme = palloc_get_page (PAL_USER | PAL_ZERO); // Copied from upper code
-  if (vme != NULL)
+  // I'm not sure whether code is correct
+  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  if (kpage != NULL)
+    {
+      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      if (success)
+        *esp = PHYS_BASE;
+      else
+        palloc_free_page (kpage);
+    }
+
+  if (success && vme != NULL)
   {
     vme->type = VM_BIN;
-    vme->vaddr = vme->file = NULL;
-    vme->writable = vme->is_loaded = false;
+    vme->vaddr = kpage;
+    vme->file = NULL;
+    vme->writable = vme->is_loaded = true;
     vme->offset = vme->read_bytes = 0;
     vme->zero_bytes = 4096;
     success = insert_vme (vm, vme);
-    if (success) // Copied from upper code
-      *esp = PHYS_BASE;
-    else
-      palloc_free_page (vme);
   }
   return success;
 }
@@ -686,5 +682,17 @@ process_close_file (int fd)
 bool
 handle_mm_fault (struct vm_entry *vme)
 {
-  
+  void *kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+
+  if (kpage == NULL)
+    return false;
+
+  switch (vme->type)
+  {
+  case VM_BIN:
+    return ( load_file (kpage, vme)
+           && install_page (vme->vaddr, kpage, vme->writable) );
+  // case VM_FILE:
+  // case VM_ANON:
+  }
 }
