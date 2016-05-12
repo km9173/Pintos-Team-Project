@@ -34,8 +34,7 @@ struct vm_entry
 	struct hash_elem *hash_e;
 
 	// TODO : 이런식으로 구하는게 맞는지 확인 필요!
-	vm_e.vaddr = vaddr;
-	pg_round_down (vaddr);
+	vm_e.vaddr = pg_round_down (vaddr);
 	hash_e = hash_find (thread_current()->vm, vm_e);
 
 	if (hash_e == NULL)
