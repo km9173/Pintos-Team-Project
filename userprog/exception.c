@@ -128,6 +128,7 @@ page_fault (struct intr_frame *f)
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr;  /* Fault address. */
   bool result = false;
+  struct vm_entry *vme = NULL;
 
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
@@ -162,7 +163,7 @@ page_fault (struct intr_frame *f)
   // kill (f);
   if (not_present)
   {
-    vm_entry *vme = find_vme (fault_addr);
+    vme = find_vme (fault_addr);
     result = handle_mm_fault (vme);
     // TODO : how to check if successfully load and mapping in Physical memory
   }
