@@ -30,7 +30,18 @@ delete_vme (struct hash *vm, struct vm_entry *vme)
 struct vm_entry
 *find_vme (void *vaddr)
 {
+	struct vm_entry vm_e;
+	struct hash_elem *hash_e;
 
+	// TODO : 이런식으로 구하는게 맞는지 확인 필요!
+	vm_e.vaddr = vaddr;
+	pg_round_down (vaddr);
+	hash_e = hash_find (thread_current()->vm, vm_e);
+
+	if (hash_e == NULL)
+		return NULL;
+
+	return hash_entry (hash_e, struct vm_entry, elem);
 }
 
 void
