@@ -566,7 +566,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       vme->type = VM_BIN;
       // TODO : vm_entry의 vaddr 을 어떻게 설정하는 지 조금 더 고민
       vme->vaddr = upage;
-      vme->writable = true;
+      vme->writable = writable;
       vme->is_loaded = false;
       vme->file = file;
       vme->offset = ofs;
@@ -574,7 +574,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       vme->zero_bytes = page_zero_bytes;
       vme->swap_slot = 0; // TODO: swap_slot size는 어떤값으로 초기화 할지..
 
-      insert_vme(&cur->vm, vme);
+      insert_vme (&cur->vm, vme);
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -608,11 +608,13 @@ setup_stack (void **esp)
   if (success && vme != NULL)
   {
     vme->type = VM_BIN;
-    vme->vaddr = kpage;
+    vme->vaddr = *esp + PGSIZE;
     vme->file = NULL;
-    vme->writable = vme->is_loaded = true;
-    vme->offset = vme->read_bytes = 0;
-    vme->zero_bytes = 4096;
+    vme->writable = true;
+    vme->is_loaded = true;
+    vme->offset = 0;
+    vme->read_bytes = 0;
+    vme->zero_bytes = PGSIZE;
     success = insert_vme (vm, vme);
   }
   return success;
@@ -705,10 +707,16 @@ handle_mm_fault (struct vm_entry *vme)
 
   switch (vme->type)
   {
-  case VM_BIN:
-    return ( load_file (kpage, vme)
-           && install_page (vme->vaddr, kpage, vme->writable) );
+    case VM_BIN:
+      if(!load_file (kpage, vme))
+        return false;
+
+      if (!install_page (vme->vaddr, kpage, vme->writable))
+        return false;
+
+      return true;
   // case VM_FILE:
   // case VM_ANON:
   }
+  return false;
 }

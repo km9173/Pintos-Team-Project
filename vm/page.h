@@ -6,10 +6,10 @@
 
 struct vm_entry {
   uint8_t type;				// Type of VM_BIN, FILE, ANON
-  void *vaddr;				// Virtual address 
+  void *vaddr;				// Virtual address
   bool writable;			// flag Writable to address
 
-  bool is_loaded;			// flag Physical memory 
+  bool is_loaded;			// flag Physical memory
   struct file* file;		// Mapped file with virtual address
 
   /* Memory Mapped File */

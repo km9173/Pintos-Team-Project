@@ -180,17 +180,11 @@ get_argument (void *esp, int *arg, int count)
 struct vm_entry *
 check_address (void *addr, void *esp UNUSED)
 {
-  struct vm_entry *vme = NULL;
   // Check addr is user memory area, If invalid access then exit process
   if (addr < (void *) 0x8048000 || addr >= (void *) 0xc0000000)
-    exit(-1);
+    exit (-1);
 
-  vme = find_vme (addr);
-  // TODO : refactoring 필요.
-  // return vme; 로 줄여도 되지만, 일단은 가독성을 위해 아래와 같이 작성..
-  if (vme != NULL)
-    return vme;
-  return NULL;
+  return find_vme (addr);
 }
 
 void
@@ -236,7 +230,7 @@ bool
 create (const char *file, unsigned initial_size)
 {
   if (file == NULL)
-    exit(-1);
+    exit (-1);
 
   return filesys_create(file, initial_size);
 }
@@ -371,13 +365,14 @@ close (int fd)
 
 // vm_entry
 }
+
 void
 check_valid_buffer (void *buffer, unsigned size, void *esp, bool to_write)
 {
   struct vm_entry *vme = check_address (buffer, esp);
   int count = 1;
 
-  if (vme == NULL || to_write != vme->writable)
+  if (vme == NULL || (to_write == true && vme->writable == false))
     exit (-1);
 
   while (size > count * 1024)

@@ -13,38 +13,7 @@ static void vm_destroy_func (struct hash_elem *e, void *aux);
 void
 vm_init (struct hash *vm)
 {
-  hash_init (vm, vm_hash_func, vm_less_func, NULL);
-}
-
-bool
-insert_vme (struct hash *vm, struct vm_entry *vme)
-{
-	if (hash_insert (vm, &vme->elem) == NULL)
-		return true;
-	return false;
-}
-
-bool
-delete_vme (struct hash *vm, struct vm_entry *vme)
-{
-  hash_delete (vm, &vme->elem);
-}
-
-struct vm_entry
-*find_vme (void *vaddr)
-{
-  struct thread *cur = thread_current ();
-	struct vm_entry vm_e;
-	struct hash_elem *hash_e;
-
-	// TODO : 이런식으로 구하는게 맞는지 확인 필요!
-	vm_e.vaddr = pg_round_down (vaddr);
-	hash_e = hash_find (&cur->vm, &vm_e.elem);
-
-	if (hash_e == NULL)
-		return NULL;
-
-	return hash_entry (hash_e, struct vm_entry, elem);
+  hash_init (vm, &vm_hash_func, &vm_less_func, NULL);
 }
 
 void
@@ -57,8 +26,8 @@ vm_destroy (struct hash *vm) // I'm not sure about vm_destroy_func & aux
 static unsigned
 vm_hash_func (const struct hash_elem *e, void *aux UNUSED)
 {
-	struct vm_entry *vm_en = hash_entry (e, struct vm_entry, elem);
-	return hash_int ((int)vm_en->vaddr);
+	struct vm_entry *vme = hash_entry (e, struct vm_entry, elem);
+	return hash_int ((int)vme->vaddr);
 }
 
 static bool
@@ -76,6 +45,37 @@ vm_destroy_func (struct hash_elem *e, void *aux)
   hash_delete (aux, e);
 }
 
+bool
+insert_vme (struct hash *vm, struct vm_entry *vme)
+{
+	if (hash_insert (vm, &vme->elem) == NULL)
+		return true;
+	return false;
+}
+
+bool
+delete_vme (struct hash *vm, struct vm_entry *vme)
+{
+  hash_delete (vm, &vme->elem);
+}
+
+struct vm_entry *
+find_vme (void *vaddr)
+{
+  struct thread *cur = thread_current ();
+	struct vm_entry vme;
+	struct hash_elem *e;
+
+	// TODO : 이런식으로 구하는게 맞는지 확인 필요!
+	vme.vaddr = pg_round_down (vaddr);
+	e = hash_find (&cur->vm, &vme.elem);
+
+	if (e == NULL)
+		return NULL;
+
+	return hash_entry (e, struct vm_entry, elem);
+}
+
 // V. Demand paging
 bool load_file (void* kaddr, struct vm_entry *vme)
 {
@@ -86,8 +86,12 @@ bool load_file (void* kaddr, struct vm_entry *vme)
   if (size > 0)
   {
     for (i = 0; i < vme->zero_bytes; i++)
-      *(char *)(kaddr + size + i) = 0;
+      *(char *)(kaddr + size + i) = '0';
     success = true;
   }
-  return success;
+
+  if (size != vme->read_bytes)
+    return false;
+  return true;
+  // return success;
 }

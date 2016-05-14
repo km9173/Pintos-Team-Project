@@ -167,9 +167,12 @@ page_fault (struct intr_frame *f)
     if (vme != NULL)
     {
       result = handle_mm_fault (vme);
-      // TODO : how to check if successfully load and mapping in Physical memory
+      if (result == false)
+        exit (-1);
     }
+    else
+      exit (-1);
   }
-  if (result == false)
+  else
     exit (-1);
 }
