@@ -169,11 +169,12 @@ void
 get_argument (void *esp, int *arg, int count)
 {
   int i = 0;
+	int *ptr;
   for (i = 0; i < count; i++)
   {
-    esp = esp + 4;
-    check_address(esp, esp);  // Check if *esp address in user memory area
-    arg[i] = esp;
+    ptr = (int *)esp + i + 1;
+    check_address(ptr, ptr);  // Check if *esp address in user memory area
+    arg[i] = *ptr;
   }
 }
 
