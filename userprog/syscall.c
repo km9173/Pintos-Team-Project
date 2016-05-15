@@ -362,8 +362,6 @@ close (int fd)
 
   process_close_file(fd);
   t->fd_size--;
-
-// vm_entry
 }
 
 void

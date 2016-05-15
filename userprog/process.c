@@ -229,6 +229,9 @@ process_exit (void)
     file_allow_write (thread_current ()->run_file);
   }
 
+  /* 메모리 leak 방지를 위한 메모리 해제 */
+  // TODO: 우리 프로젝트는 이 문제를 해결하는 방안이 없음..
+  // palloc_free_page(cur -> fd);
   // vm_entry
   vm_destroy (&cur->vm);
 
@@ -531,7 +534,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
 
-  struct thread *cur = thread_current();
+  // struct thread *cur = thread_current();
 
   file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0)
@@ -562,23 +565,30 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       //     return false;
       //   }
 
-      struct vm_entry *vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
-      vme->type = VM_BIN;
-      // TODO : vm_entry의 vaddr 을 어떻게 설정하는 지 조금 더 고민
-      vme->vaddr = upage;
-      vme->writable = writable;
-      vme->is_loaded = false;
-      vme->file = file;
-      vme->offset = ofs;
-      vme->read_bytes = page_read_bytes;
-      vme->zero_bytes = page_zero_bytes;
-      vme->swap_slot = 0; // TODO: swap_slot size는 어떤값으로 초기화 할지..
+      struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
+      if (vme != NULL)
+      {
+        vme->type = VM_BIN;
+        vme->vaddr = pg_round_down(upage);
+        vme->writable = writable;
+        vme->is_loaded = false;
+        vme->file = file;
+        vme->offset = ofs;
+        vme->read_bytes = page_read_bytes;
+        vme->zero_bytes = page_zero_bytes;
+        vme->swap_slot = 0; // TODO: swap_slot size는 어떤값으로 초기화 할지..
+        // printf("[load_segment] vme->vaddr : %p\n", vme->vaddr);
+      }
+      else
+        return false;
 
-      insert_vme (&cur->vm, vme);
+      if (!insert_vme (&thread_current()->vm, vme))
+        return false;
 
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
+      ofs += page_read_bytes;
       upage += PGSIZE;
     }
   return true;
@@ -590,9 +600,8 @@ static bool
 setup_stack (void **esp)
 {
   uint8_t *kpage;
-  struct hash *vm = &thread_current ()->vm;
-  struct vm_entry *vme = (struct vm_entry *)malloc (sizeof (struct vm_entry));
   bool success = false;
+  struct vm_entry *vme = (struct vm_entry *)malloc (sizeof (struct vm_entry));
 
   // I'm not sure whether code is correct
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
@@ -605,18 +614,21 @@ setup_stack (void **esp)
         palloc_free_page (kpage);
     }
 
-  if (success && vme != NULL)
+  if (success && vme)
   {
     vme->type = VM_BIN;
-    vme->vaddr = *esp + PGSIZE;
+    vme->vaddr = pg_round_down((void *)(((uint8_t *) PHYS_BASE) - PGSIZE));
     vme->file = NULL;
     vme->writable = true;
     vme->is_loaded = true;
     vme->offset = 0;
     vme->read_bytes = 0;
     vme->zero_bytes = PGSIZE;
-    success = insert_vme (vm, vme);
+    success = insert_vme (&thread_current ()->vm, vme);
   }
+  else
+    free(vme);
+
   return success;
 }
 
@@ -700,7 +712,7 @@ process_close_file (int fd)
 bool
 handle_mm_fault (struct vm_entry *vme)
 {
-  void *kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  void *kpage = palloc_get_page (PAL_USER);
 
   if (kpage == NULL)
     return false;
@@ -713,6 +725,8 @@ handle_mm_fault (struct vm_entry *vme)
 
       if (!install_page (vme->vaddr, kpage, vme->writable))
         return false;
+
+      vme->is_loaded = true;
 
       return true;
   // case VM_FILE:
