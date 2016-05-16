@@ -17,9 +17,8 @@ vm_init (struct hash *vm)
 }
 
 void
-vm_destroy (struct hash *vm) // I'm not sure about vm_destroy_func & aux
+vm_destroy (struct hash *vm)
 {
-  vm->aux = vm;
   hash_destroy (vm, vm_destroy_func);
 }
 
@@ -41,8 +40,10 @@ vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UN
 
 static void
 vm_destroy_func (struct hash_elem *e, void *aux)
-{	// aux used as hash
-  hash_delete (aux, e);
+{
+  hash_delete (&thread_current()->vm, e);
+  struct vm_entry *vme = hash_entry (e, struct vm_entry, elem);
+  free (vme);
 }
 
 bool
@@ -56,19 +57,19 @@ insert_vme (struct hash *vm, struct vm_entry *vme)
 bool
 delete_vme (struct hash *vm, struct vm_entry *vme)
 {
-  hash_delete (vm, &vme->elem);
+  if (hash_delete (vm, &vme->elem) != NULL)
+    return true;
+  return false;
 }
 
 struct vm_entry *
 find_vme (void *vaddr)
 {
-  struct thread *cur = thread_current ();
 	struct vm_entry vme;
 	struct hash_elem *e;
 
-	// TODO : 이런식으로 구하는게 맞는지 확인 필요!
 	vme.vaddr = pg_round_down (vaddr);
-	e = hash_find (&cur->vm, &vme.elem);
+	e = hash_find (&thread_current ()->vm, &vme.elem);
 
 	if (e == NULL)
 		return NULL;
@@ -86,7 +87,7 @@ bool load_file (void* kaddr, struct vm_entry *vme)
   if (size > 0)
   {
     for (i = 0; i < vme->zero_bytes; i++)
-      *(char *)(kaddr + size + i) = '0';
+      *(char *)(kaddr + size + i) = 0;
     success = true;
   }
 

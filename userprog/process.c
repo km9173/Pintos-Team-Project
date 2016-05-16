@@ -224,14 +224,12 @@ process_exit (void)
     process_close_file (fd);
 
   // Allow write to executable
-  if (thread_current ()->run_file)
+  if (cur->run_file)
   {
-    file_allow_write (thread_current ()->run_file);
+    // file_allow_write (cur->run_file);
+    file_close(cur -> run_file);
   }
 
-  /* 메모리 leak 방지를 위한 메모리 해제 */
-  // TODO: 우리 프로젝트는 이 문제를 해결하는 방안이 없음..
-  // palloc_free_page(cur -> fd);
   // vm_entry
   vm_destroy (&cur->vm);
 
@@ -372,8 +370,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   // Denying write to Executable & release lock
-  thread_current ()->run_file = file;
-  file_deny_write (thread_current ()->run_file);
+  t->run_file = file;
+  file_deny_write (file);
   lock_release (&filesys_lock);
 
   /* Read and verify executable header. */
@@ -576,14 +574,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
         vme->offset = ofs;
         vme->read_bytes = page_read_bytes;
         vme->zero_bytes = page_zero_bytes;
-        vme->swap_slot = 0; // TODO: swap_slot size는 어떤값으로 초기화 할지..
-        // printf("[load_segment] vme->vaddr : %p\n", vme->vaddr);
+        vme->swap_slot = 0;
       }
       else
         return false;
 
       if (!insert_vme (&thread_current()->vm, vme))
+      {
+        free(vme);
         return false;
+      }
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -603,7 +603,6 @@ setup_stack (void **esp)
   bool success = false;
   struct vm_entry *vme = (struct vm_entry *)malloc (sizeof (struct vm_entry));
 
-  // I'm not sure whether code is correct
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL)
     {

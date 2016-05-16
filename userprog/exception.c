@@ -129,6 +129,7 @@ page_fault (struct intr_frame *f)
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr;  /* Fault address. */
   bool result = false;
+  struct vm_entry *vme = NULL;
 
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
@@ -163,16 +164,19 @@ page_fault (struct intr_frame *f)
   //         user ? "user" : "kernel");
   // kill (f);
 
-  if (not_present && fault_addr > (void *) 0x08048000 && is_user_vaddr(fault_addr))
+  if (not_present)
   {
-    struct vm_entry *vme = find_vme (fault_addr);
-
-    if (vme != NULL)
-      result = handle_mm_fault (vme);
+    if ((fault_addr > (void *) 0x08048000 && is_user_vaddr(fault_addr)) || !user)
+    {
+      vme = find_vme (fault_addr);
+      if (vme != NULL)
+        result = handle_mm_fault (vme);
+    }
   }
 
   if (!result)
   {
+    exit(-1);
     // /* To implement virtual memory, delete the rest of the function
     //    body, and replace it with code that brings in the page to
     //    which fault_addr refers. */

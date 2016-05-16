@@ -47,7 +47,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       check_address((void *)(arg[0]), f->esp);
       // status = *(int *)arg[0];
       // 0: status
-      exit(arg[0]);
+      exit(*(int *)arg[0]);
       break;
 
     case SYS_EXEC:
@@ -56,15 +56,15 @@ syscall_handler (struct intr_frame *f UNUSED)
       check_valid_string ((const void *)arg[0], f->esp);
       // cmd_line = *(char **)arg[0];
       // 0: cmd_line
-      f->eax = exec ((const char *)arg[0]);
+      f->eax = exec (*(const char **)arg[0]);
       break;
 
     case SYS_WAIT:
       get_argument (f->esp, (int *)arg, 1);
-      check_address((void *)arg[0], f->esp);
+      check_address ((void *)arg[0], f->esp);
       // pid = *(int *)arg[0];
       // 0: pid
-      f->eax = wait (arg[0]);
+      f->eax = wait (*(int *)arg[0]);
       break;
 
     case SYS_CREATE:
@@ -75,7 +75,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       // file = *(char **)arg[0];
       // size = *(int *)arg[1];
       // 0: file, 1: size
-      f->eax = create((const char *)arg[0], arg[1]);
+      f->eax = create(*(const char **)arg[0], *(int *)arg[1]);
       break;
 
     case SYS_REMOVE:
@@ -84,7 +84,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       check_valid_string ((const void *)arg[0], f->esp);
       // file = *(char **)arg[0];
       // 0: file
-      f->eax = remove ((const char *)arg[0]);
+      f->eax = remove (*(const char **)arg[0]);
       break;
 
     case SYS_OPEN:
@@ -93,7 +93,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       check_valid_string ((const void *)arg[0], f->esp);
       // file = *(char **)arg[0];
       // 0: file
-      f->eax = open ((const char *)arg[0]);
+      f->eax = open (*(const char **)arg[0]);
       break;
 
     case SYS_FILESIZE:
@@ -101,7 +101,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       check_address((void *)arg[0], f->esp);
       // fd = *(int *)arg[0];
       // 0: fd
-      f->eax = filesize (arg[0]);
+      f->eax = filesize (*(int *)arg[0]);
       break;
 
     case SYS_READ:
@@ -109,14 +109,14 @@ syscall_handler (struct intr_frame *f UNUSED)
       check_address((void *)arg[0], f->esp);
       // check_address((void *)arg[1]);
       check_address((void *)arg[2], f->esp);
-      check_valid_buffer ((void *)arg[1], *(int *)arg[2], f->esp, true);
+      check_valid_buffer (*(void **)arg[1], *(int *)arg[2], f->esp, true);
       // fd = *(int *)arg[0];
       // buffer = *(void **)arg[1];
       // size = *(int *)arg[2];
       // check_address (buffer + size);
       // 0: fd, 1: buffer, 2: size
-      check_address ((void *)(arg[1] + arg[2]), f->esp);
-      f->eax = read (arg[0], (void *)arg[1], (unsigned)arg[2]);
+      // check_address ((void *)(arg[1] + arg[2]), f->esp);
+      f->eax = read (*(int *)arg[0], *(void **)arg[1], *(unsigned *)arg[2]);
       break;
 
     case SYS_WRITE:
@@ -131,7 +131,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       // check_address (buffer + size);
       // 0: fd, 1: buffer, 2: size
       check_address ((void *)(arg[1] + arg[2]), f->esp);
-      f->eax = write (arg[0], (void *)arg[1], (unsigned)arg[2]);
+      f->eax = write (*(int *)arg[0], *(void **)arg[1], *(unsigned *)arg[2]);
       break;
 
     case SYS_SEEK:
@@ -141,7 +141,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       // fd = *(int *)arg[0];
       // position = *(unsigned *)arg[1];
       // 0: fd, 1: position
-      seek (arg[0], (unsigned)arg[1]);
+      seek (*(int *)arg[0], *(unsigned *)arg[1]);
       break;
 
     case SYS_TELL:
@@ -149,7 +149,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       check_address((void *)arg[0], f->esp);
       // fd = *(int *)arg[0];
       // 0: fd
-      f->eax = tell (arg[0]);
+      f->eax = tell (*(int *)arg[0]);
       break;
 
     case SYS_CLOSE:
@@ -157,7 +157,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       check_address((void *)arg[0], f->esp);
       // fd = *(int *)arg[0];
       // 0: fd
-      close (arg[0]);
+      close ((void *)arg[0]);
       break;
 
     default:
@@ -169,12 +169,11 @@ void
 get_argument (void *esp, int *arg, int count)
 {
   int i = 0;
-	int *ptr;
   for (i = 0; i < count; i++)
   {
-    ptr = (int *)esp + i + 1;
-    check_address(ptr, ptr);  // Check if *esp address in user memory area
-    arg[i] = *ptr;
+    esp = esp + 4;
+    check_address(esp, esp);  // Check if *esp address in user memory area
+    arg[i] = esp;
   }
 }
 
@@ -368,16 +367,13 @@ close (int fd)
 void
 check_valid_buffer (void *buffer, unsigned size, void *esp, bool to_write)
 {
-  struct vm_entry *vme = check_address (buffer, esp);
-  int count = 1;
-
-  if (vme == NULL || (to_write == true && vme->writable == false))
-    exit (-1);
+  struct vm_entry *vme = NULL;
+  int count = 0;
 
   while (size > count * 1024)
   {
     vme = check_address (buffer + count * 1024, esp);
-    if (vme == NULL)
+    if (vme == NULL || vme->writable != to_write)
       exit (-1);
     count++;
   }
