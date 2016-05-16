@@ -130,7 +130,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       // size = *(int *)arg[2];
       // check_address (buffer + size);
       // 0: fd, 1: buffer, 2: size
-      check_address ((void *)(arg[1] + arg[2]), f->esp);
+      // check_address ((void *)(arg[1] + arg[2]), f->esp);
       f->eax = write (*(int *)arg[0], *(void **)arg[1], *(unsigned *)arg[2]);
       break;
 
@@ -157,7 +157,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       check_address((void *)arg[0], f->esp);
       // fd = *(int *)arg[0];
       // 0: fd
-      close ((void *)arg[0]);
+      close (*(int *)arg[0]);
       break;
 
     default:
@@ -316,6 +316,9 @@ write (int fd, void *buffer, unsigned size)
 {
   struct file *f = NULL;
   int read_size = 0;
+
+  if (fd == STDIN_FILENO)
+		return -1;
 
   lock_acquire (&filesys_lock);
 
