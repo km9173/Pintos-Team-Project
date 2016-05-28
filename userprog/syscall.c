@@ -413,12 +413,13 @@ mmap (int fd, void *addr)
   uint32_t read_bytes;
   uint32_t zero_bytes;
 
-  if((old_file = process_get_file (fd)) == NULL)
+  if ((old_file = process_get_file (fd)) == NULL)
     return -1;
 
   // check_address func을 쓰지 않는게 올바른 선택인가?
   // 테스트 케이스중에 exit(-1)을 유도하는 건지 return -1을 유도하는 건지 모르겠다.
-  if(addr < (void *)0x08048000 || addr >= (void *)0xc0000000)
+  if (addr < (void *)0x08048000 || addr >= (void *)0xc0000000 ||
+     ((uint32_t) addr % PGSIZE) != 0)
     return -1;
 
   lock_acquire(&filesys_lock);
