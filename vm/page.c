@@ -81,18 +81,19 @@ find_vme (void *vaddr)
 bool load_file (void* kaddr, struct vm_entry *vme)
 {
   off_t size = file_read_at (vme->file, kaddr, vme->read_bytes, vme->offset);
-  bool success = false;
-  size_t i;
+  // size_t i;
+  //
+  // if (size > 0)
+  // {
+  //   for (i = 0; i < vme->zero_bytes; i++)
+  //     *(char *)(kaddr + size + i) = 0;
+  //   success = true;
+  // }
 
   if (size > 0)
-  {
-    for (i = 0; i < vme->zero_bytes; i++)
-      *(char *)(kaddr + size + i) = 0;
-    success = true;
-  }
+    memset (kaddr + vme->read_bytes, 0, vme->zero_bytes);
 
-  if (size != vme->read_bytes)
+  if ((int) size != (int) vme->read_bytes)
     return false;
   return true;
-  // return success;
 }
