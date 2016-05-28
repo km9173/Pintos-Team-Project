@@ -8,6 +8,7 @@
 #include "filesys/filesys.h"
 #include "userprog/process.h"
 #include "debug.h"
+#include "threads/vaddr.h"
 
 static void syscall_handler (struct intr_frame *);
 void get_argument(void *esp, int *arg, int count);
@@ -158,6 +159,16 @@ syscall_handler (struct intr_frame *f UNUSED)
       // fd = *(int *)arg[0];
       // 0: fd
       close (*(int *)arg[0]);
+      break;
+
+    case SYS_MMAP:              /* Map a file into memory. */
+      get_argument(f->esp , (int *)arg , 2);
+      f -> eax = mmap (*(int *)arg[0], *(void **)arg[1]);
+      break;
+
+    case SYS_MUNMAP:            /* Remove a memory mapping. */
+      get_argument(f->esp , (int *)arg , 1);
+      munmap (*(int *)arg[0]);
       break;
 
     default:
@@ -387,4 +398,127 @@ check_valid_string (const void *str, void *esp)
 {
   if (check_address (str, esp) == NULL)
     exit (-1);
+}
+
+// 12. Memory mapped file Project
+int
+mmap (int fd, void *addr)
+{
+  struct thread *cur = NULL;
+  struct vm_entry *vme = NULL;
+  struct file *old_file = NULL;
+  struct file *new_file = NULL;
+  struct mmap_file *mmap_f = NULL;
+  off_t ofs = 0;
+  uint32_t read_bytes;
+  uint32_t zero_bytes;
+
+  if((old_file = process_get_file (fd)) == NULL)
+    return -1;
+
+  // check_address func을 쓰지 않는게 올바른 선택인가?
+  // 테스트 케이스중에 exit(-1)을 유도하는 건지 return -1을 유도하는 건지 모르겠다.
+  if(addr < (void *)0x08048000 || addr >= (void *)0xc0000000)
+    return -1;
+
+  lock_acquire(&filesys_lock);
+  new_file = file_reopen (old_file);
+  lock_release(&filesys_lock);
+  if (new_file == NULL) // if we check file_length?
+    return -1;
+
+  read_bytes = file_length (new_file);
+
+  mmap_f = (struct mmap_file *)malloc(sizeof(struct mmap_file));
+  if (mmap_f == NULL)
+    return -1;
+
+  list_init (&mmap_f->vme_list);
+  cur = thread_current();
+
+  while (read_bytes > 0)
+  {
+    /* Calculate how to fill this page.
+       We will read PAGE_READ_BYTES bytes from FILE
+       and zero the final PAGE_ZERO_BYTES bytes. */
+    size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+    size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+    struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
+    if (vme != NULL)
+    {
+      vme->type = VM_FILE;
+      vme->vaddr = pg_round_down(addr);
+      vme->writable = true;
+      vme->is_loaded = false;
+      vme->file = new_file;
+      vme->offset = ofs;
+      vme->read_bytes = page_read_bytes;
+      vme->zero_bytes = page_zero_bytes;
+      vme->swap_slot = 0;
+    }
+    else
+      return -1;
+
+    if (!insert_vme (&cur->vm, vme))
+    {
+      free(vme);
+      return -1;
+    }
+
+    list_push_back(&mmap_f->vme_list , &vme->mmap_elem);
+
+    /* Advance. */
+    read_bytes -= page_read_bytes;
+    ofs += page_read_bytes;
+    addr += PGSIZE;
+  }
+
+  mmap_f->mapid = cur->mmap_list_count;
+  cur->mmap_list_count += 1;
+  mmap_f->file = new_file;
+  list_push_back(&cur->mmap_list , &mmap_f->elem);
+
+  return mmap_f->mapid;
+}
+
+void
+munmap (int mapid)
+{
+  struct thread *cur = thread_current();
+  struct list_elem *it;
+
+  for (it = list_begin(&cur->mmap_list); it != list_end(&cur->mmap_list); )
+  {
+  	struct mmap_file *mmap_f = list_entry(it, struct mmap_file, elem);
+  	if (mapid == CLOSE_ALL || mapid == mmap_f->mapid)
+	{
+      // do_munmap
+      while (!list_empty(&mmap_f->vme_list))
+      {
+      	struct list_elem *i = list_pop_front(&mmap_f->vme_list);
+      	struct vm_entry *vme = list_entry(i, struct vm_entry, mmap_elem);
+      	if (vme->is_loaded && pagedir_is_dirty (cur->pagedir, vme->vaddr))
+      	{
+      	  lock_acquire(&filesys_lock);
+      	  file_write_at(vme->file, vme->vaddr, vme->read_bytes, vme->offset);
+      	  lock_release(&filesys_lock);
+      	}
+      	palloc_free_page (pagedir_get_page(cur->pagedir, vme->vaddr));
+      	pagedir_clear_page(cur->pagedir, vme->vaddr);
+      	list_remove(&vme->elem);
+      	free(vme);
+      }
+
+      struct list_elem *next = list_next(it);
+
+      file_close(mmap_f->file);
+      list_remove(&mmap_f->elem);
+      free(mmap_f);
+
+      it = next;
+	}
+	else
+	  it = list_next(it);
+  }
 }

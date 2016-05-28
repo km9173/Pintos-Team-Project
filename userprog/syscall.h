@@ -3,7 +3,10 @@
 
 #include "threads/synch.h"
 
+#define CLOSE_ALL -1
+
 typedef int pid_t;
+typedef int mapid_t;
 
 struct lock filesys_lock;
 
@@ -24,5 +27,6 @@ int write (int fd, void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+void munmap (int mapid);
 
 #endif /* userprog/syscall.h */
