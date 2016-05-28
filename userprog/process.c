@@ -230,6 +230,8 @@ process_exit (void)
     file_close(cur -> run_file);
   }
 
+  munmap(CLOSE_ALL);
+
   // vm_entry
   vm_destroy (&cur->vm);
 
@@ -721,14 +723,19 @@ handle_mm_fault (struct vm_entry *vme)
     case VM_BIN:
       if(!load_file (kpage, vme))
         return false;
-
       if (!install_page (vme->vaddr, kpage, vme->writable))
         return false;
-
       vme->is_loaded = true;
-
       return true;
-  // case VM_FILE:
+
+    case VM_FILE:
+      if(!load_file (kpage, vme))
+        return false;
+      if (!install_page (vme->vaddr, kpage, vme->writable))
+        return false;
+      vme->is_loaded = true;
+      return true;
+
   // case VM_ANON:
   }
   return false;
