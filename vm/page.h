@@ -34,3 +34,11 @@ void vm_destroy (struct hash *vm);
 
 // V. Demand paging
 bool load_file (void* kaddr, struct vm_entry *vme);
+
+// 12. Memory mapped file Project
+struct mmap_file {
+  int mapid;
+  struct file* file;
+  struct list_elem elem;
+  struct list vme_list;
+};
