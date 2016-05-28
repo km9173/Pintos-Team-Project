@@ -126,6 +126,10 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
 
     struct hash vm;
+
+    // 12. memory mapped file Project
+    struct list mmap_list;
+    int mmap_list_count;
   };
 
 /* If false (default), use round-robin scheduler.
