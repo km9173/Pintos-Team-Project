@@ -228,6 +228,9 @@ thread_create (const char *name, int priority,
   for (i = 0; i < FD_MAX; i++)
     t->fd_table[i] = NULL;
 
+  // 12. Memory mapped file
+  t->mmap_list_count = 0;
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -500,6 +503,10 @@ init_thread (struct thread *t, const char *name, int priority)
 
   // Initialize child list
   list_init (&t->children);
+
+  // 12. Memory mapped file
+  // Initialize mmap_list
+  list_init(&t->mmap_list);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
