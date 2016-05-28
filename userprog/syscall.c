@@ -9,6 +9,10 @@
 #include "userprog/process.h"
 #include "debug.h"
 #include "threads/vaddr.h"
+#include "threads/palloc.h"
+#include "threads/thread.h"
+#include "threads/malloc.h"
+#include "userprog/pagedir.h"
 
 static void syscall_handler (struct intr_frame *);
 void get_argument(void *esp, int *arg, int count);
@@ -184,7 +188,7 @@ get_argument (void *esp, int *arg, int count)
   {
     esp = esp + 4;
     check_address(esp, esp);  // Check if *esp address in user memory area
-    arg[i] = esp;
+    arg[i] = (int)esp;
   }
 }
 
@@ -384,7 +388,7 @@ check_valid_buffer (void *buffer, unsigned size, void *esp, bool to_write)
   struct vm_entry *vme = NULL;
   int count = 0;
 
-  while (size > count * 1024)
+  while ((int)size > count * 1024)
   {
     vme = check_address (buffer + count * 1024, esp);
     if (vme == NULL || vme->writable != to_write)
@@ -396,22 +400,21 @@ check_valid_buffer (void *buffer, unsigned size, void *esp, bool to_write)
 void
 check_valid_string (const void *str, void *esp)
 {
-  if (check_address (str, esp) == NULL)
+  void *string = (void *)str;
+  if (check_address (string, esp) == NULL)
     exit (-1);
 }
 
 // 12. Memory mapped file Project
-int
+mapid_t
 mmap (int fd, void *addr)
 {
   struct thread *cur = NULL;
-  struct vm_entry *vme = NULL;
   struct file *old_file = NULL;
   struct file *new_file = NULL;
   struct mmap_file *mmap_f = NULL;
   off_t ofs = 0;
   uint32_t read_bytes;
-  uint32_t zero_bytes;
 
   if ((old_file = process_get_file (fd)) == NULL)
     return -1;
@@ -507,7 +510,8 @@ munmap (int mapid)
       	}
       	palloc_free_page (pagedir_get_page(cur->pagedir, vme->vaddr));
       	pagedir_clear_page(cur->pagedir, vme->vaddr);
-      	list_remove(&vme->elem);
+      	//list_remove(&vme->elem);
+        hash_delete(&cur->vm, &vme->elem);
       	free(vme);
       }
 
