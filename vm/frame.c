@@ -1,6 +1,7 @@
 #include "frame.h"
 
 static struct list lru_list;
+static struct lock lru_list_lock;
 
 void
 lru_list_init (void)
