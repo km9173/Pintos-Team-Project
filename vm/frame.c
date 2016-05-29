@@ -37,16 +37,25 @@ get_next_lru_clock ()
 struct page *
 alloc_page (enum palloc_flags flags)
 {
-  uint8_t *kpage;
-  struct page *new_page;
+  uint8_t *kpage = NULL;
+  struct page *new_page = NULL;
 
   kpage = palloc_get_page (flags);
+
+  if (kpage == NULL)
+    try_to_free_pages (flags);
+
   new_page = (struct page *)malloc(sizeof(struct page));
 
   if (new_page == NULL)
+  {
+    palloc_free_page (kpage);
     return NULL;
+  }
 
-  memset (new_page, 0, sizeof(struct page));
+  new_page->kaddr = kpage;
+  new_page->vme = NULL; // (struct vm_entry *)malloc(sizeof(struct vm_entry));
+  new_page->thread = thread_current ();
 
   add_page_to_lru_list (new_page);
 
