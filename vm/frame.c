@@ -25,7 +25,9 @@ add_page_to_lru_list (struct page* page)
 void
 del_page_from_lru_list (struct page* page)
 {
+  lock_acquire (&lru_list_lock);
   list_remove (&page->lru_elem);
+  lock_release (&lru_list_lock);
 }
 
 static struct list_elem *
