@@ -1,4 +1,5 @@
 #include "frame.h"
+#include <string.h>
 #include "vm/page.h"
 #include "threads/synch.h"
 
@@ -36,7 +37,20 @@ get_next_lru_clock ()
 struct page *
 alloc_page (enum palloc_flags flags)
 {
+  uint8_t *kpage;
+  struct page *new_page;
 
+  kpage = palloc_get_page (flags);
+  new_page = (struct page *)malloc(sizeof(struct page));
+
+  if (new_page == NULL)
+    return NULL;
+
+  memset (new_page, 0, sizeof(struct page));
+
+  add_page_to_lru_list (new_page);
+
+  return new_page;
 }
 
 void
