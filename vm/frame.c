@@ -1,4 +1,5 @@
 #include "frame.h"
+#include "vm/page.h"
 
 static struct list lru_list;
 static struct lock lru_list_lock;
