@@ -42,3 +42,10 @@ struct mmap_file {
   struct list_elem elem;
   struct list vme_list;
 };
+
+struct page {
+  void *kaddr;
+  struct vm_entry *vme;
+  struct thread *thread;
+  struct list_elem lru_elem;
+};
