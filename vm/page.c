@@ -1,6 +1,8 @@
 #include "page.h"
+#include <string.h>
 #include "kernel/hash.h"
 #include "threads/thread.h"
+#include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "filesys/file.h"
 #include "debug.h"
@@ -39,7 +41,7 @@ vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UN
 }
 
 static void
-vm_destroy_func (struct hash_elem *e, void *aux)
+vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
 {
   hash_delete (&thread_current()->vm, e);
   struct vm_entry *vme = hash_entry (e, struct vm_entry, elem);

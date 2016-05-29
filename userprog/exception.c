@@ -4,7 +4,7 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "userprog/syscall.h"
-// #include "userprog/process.h"
+#include "userprog/process.h"
 #include "threads/vaddr.h"
 
 /* Number of page faults processed. */
