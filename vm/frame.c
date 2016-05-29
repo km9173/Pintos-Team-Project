@@ -6,7 +6,11 @@ static struct lock lru_list_lock;
 void
 lru_list_init (void)
 {
-
+  list_init (&lru_list);
+  lock_init (&lru_list_lock);
+  // TODO : lru_clock의 값을 NULL로 설정
+  // 문제는 lru_clock 에 대한 언급이 실습 자료에 없음..
+  // 아무래도 lru_clock은 page를 가리키는 포인터여야 할 것 같다.
 }
 
 void
