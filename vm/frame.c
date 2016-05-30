@@ -5,6 +5,7 @@
 
 static struct list lru_list;
 static struct lock lru_list_lock;
+static struct list_elem lru_clock;
 
 void
 lru_list_init (void)
@@ -80,8 +81,57 @@ __free_page (struct page* page)
 
 }
 
-void
+void *
 try_to_free_pages (enum palloc_flags flags)
 {
+  struct list_elem *elem = NULL;
+  void *kaddr = NULL;
 
+  for (elem = get_next_lru_clock (); true; elem = get_next_lru_clock ())
+  {
+    struct page *p = list_entry (elem, struct page, lru_elem);
+    if (p != NULL && p->vme != NULL)
+    {
+      if (pagedir_is_accessed(p->thread->pagedir, p->vme->vaddr))
+        pagedir_set_accessed (p->thread->pagedir, p->vme->vaddr, false);
+      else
+      {
+        kaddr = p->kaddr;
+        if (p->vme->type == VM_BIN)
+        {
+          if (pagedir_is_dirty(p->thread->pagedir, p->vme->vaddr))
+            swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
+          p->vme->type = ANON;
+        }
+
+        else if (p->vme->type == FILE)
+        {
+          if (p->vme->is_loaded && pagedir_is_dirty(p->thread->pagedir, p->vme->vaddr))
+          {
+            lock_acquire(&filesys_lock);
+            file_write_at(p->vme->file, p->vme->vaddr, p->vme->read_bytes, p->vme->offset);
+            lock_release(&filesys_lock);
+          }
+        }
+
+        else if (p->vme->type == ANON)
+        {
+          swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
+        }
+
+        else
+        {
+          // expect not reach here
+          ; // must be error
+        }
+        __free_page (p); // palloc_free_page (p->kaddr);
+        pagedir_clear_page (p->thread->pagedir, p->vme->vaddr);
+        return kaddr;
+      }
+    }
+    else
+      printf("error!\n");// something error
+
+    return NULL;
+  }
 }
