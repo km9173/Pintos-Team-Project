@@ -725,7 +725,7 @@ handle_mm_fault (struct vm_entry *vme)
     case VM_BIN:
       if(!load_file (kpage, vme) || !install_page (vme->vaddr, kpage, vme->writable))
       {
-        free_page (void *addr);
+        free_page (kpage);
         return false;
       }
       vme->is_loaded = true;
@@ -734,7 +734,7 @@ handle_mm_fault (struct vm_entry *vme)
     case VM_FILE:
       if(!load_file (kpage, vme) || !install_page (vme->vaddr, kpage, vme->writable))
       {
-        free_page (void *addr);
+        free_page (kpage);
         return false;
       }
       vme->is_loaded = true;
