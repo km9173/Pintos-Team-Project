@@ -2,12 +2,26 @@
 #include <string.h>
 #include "vm/page.h"
 #include "threads/synch.h"
+#include "threads/malloc.h"
+#include "threads/palloc.h"
+#include "threads/thread.h"
+#include "userprog/pagedir.h"
+#include "userprog/syscall.h"
+
+#include "lib/stdio.h"
 
 static struct list lru_list;
 static struct lock lru_list_lock;
-static struct list_elem lru_clock;
+static struct list_elem *lru_clock;
 
+void lru_list_init (void);
+void add_page_to_lru_list (struct page* page);
+void del_page_from_lru_list (struct page* page);
+static struct list_elem *get_next_lru_clock ();
+struct page *alloc_page (enum palloc_flags flags);
+void free_page (void *addr);
 void __free_page (struct page* page);
+void *try_to_free_pages (enum palloc_flags flags);
 
 void
 lru_list_init (void)
@@ -39,8 +53,8 @@ get_next_lru_clock ()
   if (lru_clock == NULL || lru_clock == list_end (&lru_list))
     lru_clock = list_begin (&lru_list);
   else
-    lru_clock = list_next (&lru_clock);
-  return &lru_clock;
+    lru_clock = list_next (lru_clock);
+  return lru_clock;
 }
 
 struct page *
@@ -92,7 +106,7 @@ void
 __free_page (struct page* page)
 {
   list_remove (&page->lru_elem);
-  palloc_free_page (page);
+  free (page);
 }
 
 void *
@@ -115,10 +129,10 @@ try_to_free_pages (enum palloc_flags flags)
         {
           if (pagedir_is_dirty(p->thread->pagedir, p->vme->vaddr))
             swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
-          p->vme->type = ANON;
+          p->vme->type = VM_ANON;
         }
 
-        else if (p->vme->type == FILE)
+        else if (p->vme->type == VM_FILE)
         {
           if (p->vme->is_loaded && pagedir_is_dirty(p->thread->pagedir, p->vme->vaddr))
           {
@@ -128,7 +142,7 @@ try_to_free_pages (enum palloc_flags flags)
           }
         }
 
-        else if (p->vme->type == ANON)
+        else if (p->vme->type == VM_ANON)
         {
           swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
         }
