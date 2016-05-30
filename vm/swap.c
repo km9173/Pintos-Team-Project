@@ -1,6 +1,9 @@
 #include "swap.h"
 #include <bitmap.h>
 
+#define BLOCK_SIZE 512
+#define SLOT_SIZE 4096
+
 static struct bitmap *swap_bitmap;
 
 void
