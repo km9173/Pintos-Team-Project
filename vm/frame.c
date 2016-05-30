@@ -50,10 +50,12 @@ del_page_from_lru_list (struct page* page)
 static struct list_elem *
 get_next_lru_clock ()
 {
+  lock_acquire (&lru_list_lock);
   if (lru_clock == NULL || lru_clock == list_end (&lru_list))
     lru_clock = list_begin (&lru_list);
   else
     lru_clock = list_next (lru_clock);
+  lock_release (&lru_list_lock);
   return lru_clock;
 }
 
