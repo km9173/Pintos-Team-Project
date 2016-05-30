@@ -122,7 +122,9 @@ try_to_free_pages (enum palloc_flags flags)
         else
         {
           // expect not reach here
-          ; // must be error
+          // if reach here then must be error case
+          printf("error!\n");
+          return NULL;
         }
         __free_page (p); // palloc_free_page (p->kaddr);
         pagedir_clear_page (p->thread->pagedir, p->vme->vaddr);
