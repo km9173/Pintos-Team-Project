@@ -106,6 +106,7 @@ void
 __free_page (struct page* page)
 {
   list_remove (&page->lru_elem);
+  palloc_free_page (&page->kaddr);
   free (page);
 }
 
