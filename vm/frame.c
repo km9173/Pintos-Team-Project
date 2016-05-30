@@ -44,8 +44,12 @@ alloc_page (enum palloc_flags flags)
 
   kpage = palloc_get_page (flags);
 
-  if (kpage == NULL)
-    try_to_free_pages (flags);
+  while (kpage == NULL)
+  {
+    kpage = try_to_free_pages (flags);
+    if (kpage != NULL)
+      kpage = palloc_get_page (flags);
+  }
 
   new_page = (struct page *)malloc(sizeof(struct page));
 
