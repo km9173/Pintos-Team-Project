@@ -5,9 +5,6 @@
 #include "threads/synch.h"
 #include "vm/frame.h"
 
-#define BLOCK_SIZE 512
-#define SLOT_SIZE 4096
-
 static struct bitmap *swap_slot_bitmap;
 static struct block *swap_block;
 static struct lock swap_lock;
@@ -42,5 +39,14 @@ swap_in (size_t used_index, void* kaddr)
 size_t
 swap_out (void* kaddr)
 {
-
+  lock_acquire (&swap_lock);
+  size_t out = bitmap_scan (swap_slot_bitmap, 0, PGSIZE / BLOCK_SECTOR_SIZE, false);
+  if (out == BITMAP_ERROR)
+  	return -1; // I'm not sure
+  else {
+    bitmap_flip (swap_slot_bitmap, out);
+    for (i = 0; i < (PGSIZE / BLOCK_SECTOR_SIZE); i++)
+      block_write (swap_block, out * (PGSIZE / BLOCK_SECTOR_SIZE) + i, kaddr + i * BLOCK_SECTOR_SIZE);
+  }
+  lock_release (&swap_lock);
 }
