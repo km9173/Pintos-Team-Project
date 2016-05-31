@@ -44,6 +44,7 @@ swap_out (void* kaddr)
   if (out == BITMAP_ERROR)
   	return -1; // I'm not sure
   else {
+    int i;
     bitmap_flip (swap_slot_bitmap, out);
     for (i = 0; i < (PGSIZE / BLOCK_SECTOR_SIZE); i++)
       block_write (swap_block, out * (PGSIZE / BLOCK_SECTOR_SIZE) + i, kaddr + i * BLOCK_SECTOR_SIZE);

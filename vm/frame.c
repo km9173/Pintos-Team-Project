@@ -1,6 +1,8 @@
 #include "frame.h"
 #include <string.h>
 #include "vm/page.h"
+#include "vm/frame.h"
+#include "vm/swap.h"
 #include "threads/synch.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
@@ -113,7 +115,7 @@ __free_page (struct page* page)
 }
 
 void *
-try_to_free_pages (enum palloc_flags flags)
+try_to_free_pages (enum palloc_flags flags UNUSED)
 {
   struct list_elem *elem = NULL;
   void *kaddr = NULL;
