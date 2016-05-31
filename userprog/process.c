@@ -21,6 +21,7 @@
 #include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "vm/swap.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -713,7 +714,8 @@ process_close_file (int fd)
 bool
 handle_mm_fault (struct vm_entry *vme)
 {
-  void *kpage = palloc_get_page (PAL_USER);
+  // void *kpage = palloc_get_page (PAL_USER);
+  void *kpage = alloc_page (PAL_USER);
 
   if (kpage == NULL)
     return false;
@@ -721,22 +723,26 @@ handle_mm_fault (struct vm_entry *vme)
   switch (vme->type)
   {
     case VM_BIN:
-      if(!load_file (kpage, vme))
+      if(!load_file (kpage, vme) || !install_page (vme->vaddr, kpage, vme->writable))
+      {
+        free_page (kpage);
         return false;
-      if (!install_page (vme->vaddr, kpage, vme->writable))
-        return false;
+      }
       vme->is_loaded = true;
       return true;
 
     case VM_FILE:
-      if(!load_file (kpage, vme))
+      if(!load_file (kpage, vme) || !install_page (vme->vaddr, kpage, vme->writable))
+      {
+        free_page (kpage);
         return false;
-      if (!install_page (vme->vaddr, kpage, vme->writable))
-        return false;
+      }
       vme->is_loaded = true;
       return true;
 
-  // case VM_ANON:
+    case VM_ANON:
+      swap_in (vme->swap_slot, kpage);
+      return true;
   }
   return false;
 }
