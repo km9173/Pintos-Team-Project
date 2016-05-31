@@ -13,6 +13,7 @@
 #include "threads/thread.h"
 #include "threads/malloc.h"
 #include "userprog/pagedir.h"
+#include "vm/frame.h"
 
 static void syscall_handler (struct intr_frame *);
 void get_argument(void *esp, int *arg, int count);
@@ -508,7 +509,7 @@ munmap (int mapid)
       	  file_write_at(vme->file, vme->vaddr, vme->read_bytes, vme->offset);
       	  lock_release(&filesys_lock);
       	}
-      	palloc_free_page (pagedir_get_page(cur->pagedir, vme->vaddr));
+      	free_page (pagedir_get_page(cur->pagedir, vme->vaddr));
       	pagedir_clear_page(cur->pagedir, vme->vaddr);
       	//list_remove(&vme->elem);
         hash_delete(&cur->vm, &vme->elem);

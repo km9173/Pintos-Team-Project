@@ -21,6 +21,7 @@
 #include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "vm/frame.h"
 #include "vm/swap.h"
 
 static thread_func start_process NO_RETURN;
@@ -602,23 +603,24 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp)
 {
-  uint8_t *kpage;
+  struct page *kpage;
   bool success = false;
   struct vm_entry *vme = (struct vm_entry *)malloc (sizeof (struct vm_entry));
 
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  kpage = alloc_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
         *esp = PHYS_BASE;
       else
-        palloc_free_page (kpage);
+        free_page (kpage);
     }
 
   if (success && vme)
   {
-    vme->type = VM_BIN;
+    //vme->type = VM_BIN;
+    vme->type = VM_ANON;
     vme->vaddr = pg_round_down((void *)(((uint8_t *) PHYS_BASE) - PGSIZE));
     vme->file = NULL;
     vme->writable = true;
