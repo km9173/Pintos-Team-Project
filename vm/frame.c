@@ -36,28 +36,28 @@ lru_list_init (void)
 void
 add_page_to_lru_list (struct page* page)
 {
-  lock_acquire (&lru_list_lock);
+  // lock_acquire (&lru_list_lock);
   list_push_back (&lru_list, &page->lru_elem);
-  lock_release (&lru_list_lock);
+  // lock_release (&lru_list_lock);
 }
 
 void
 del_page_from_lru_list (struct page* page)
 {
-  lock_acquire (&lru_list_lock);
+  // lock_acquire (&lru_list_lock);
   list_remove (&page->lru_elem);
-  lock_release (&lru_list_lock);
+  // lock_release (&lru_list_lock);
 }
 
 static struct list_elem *
 get_next_lru_clock ()
 {
-  lock_acquire (&lru_list_lock);
+  // lock_acquire (&lru_list_lock);
   if (lru_clock == NULL || lru_clock == list_end (&lru_list))
     lru_clock = list_begin (&lru_list);
   else
     lru_clock = list_next (lru_clock);
-  lock_release (&lru_list_lock);
+  // lock_release (&lru_list_lock);
   return lru_clock;
 }
 
@@ -67,6 +67,7 @@ alloc_page (enum palloc_flags flags)
   void *kpage = NULL;
   struct page *new_page = NULL;
 
+  lock_acquire (&lru_list_lock);
   kpage = palloc_get_page (flags);
 
   while (kpage == NULL)
@@ -87,8 +88,8 @@ alloc_page (enum palloc_flags flags)
   new_page->kaddr = kpage;
   new_page->vme = NULL; // (struct vm_entry *)malloc(sizeof(struct vm_entry));
   new_page->thread = thread_current ();
-
   add_page_to_lru_list (new_page);
+  lock_release (&lru_list_lock);
 
   return new_page;
 }
@@ -109,7 +110,8 @@ free_page (void *addr)
 void
 __free_page (struct page* page)
 {
-  list_remove (&page->lru_elem);
+  // list_remove (&page->lru_elem);
+  del_page_from_lru_list (page);
   palloc_free_page (page->kaddr);
   free (page);
 }
@@ -169,7 +171,7 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
           return NULL;
         }
         pagedir_clear_page (p->thread->pagedir, p->vme->vaddr);
-        free_page (p->kaddr); // palloc_free_page (p->kaddr);
+        __free_page (p); // palloc_free_page (p->kaddr);
         //printf("fin! ");
         return kaddr;
       }

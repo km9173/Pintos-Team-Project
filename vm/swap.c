@@ -16,7 +16,7 @@ swap_init () // size_t used_index, void* kaddr
   swap_block = block_get_role (BLOCK_SWAP);
   swap_slot_bitmap =
     bitmap_create (BLOCK_SECTOR_SIZE * block_size (swap_block) / PGSIZE);
-  bitmap_set_all (swap_slot_bitmap, 0);
+  bitmap_set_all (swap_slot_bitmap, false);
   lock_init (&swap_lock);
 }
 
@@ -35,7 +35,7 @@ swap_in (size_t used_index, void* kaddr)
     bitmap_flip (swap_slot_bitmap, used_index);
     for (i = 0; i < (PGSIZE / BLOCK_SECTOR_SIZE); i++)
     {
-      block_read (swap_block, used_index * (PGSIZE / BLOCK_SECTOR_SIZE) + i, kaddr + i * BLOCK_SECTOR_SIZE);
+      block_read (swap_block, used_index * (PGSIZE / BLOCK_SECTOR_SIZE) + i, (uint8_t *)kaddr + i * BLOCK_SECTOR_SIZE);
     }
   }
   //printf("2\n");
@@ -54,7 +54,7 @@ swap_out (void* kaddr)
 
   bitmap_flip (swap_slot_bitmap, out);
   for (i = 0; i < (PGSIZE / BLOCK_SECTOR_SIZE); i++)
-    block_write (swap_block, out * (PGSIZE / BLOCK_SECTOR_SIZE) + i, kaddr + i * BLOCK_SECTOR_SIZE);
+    block_write (swap_block, out * (PGSIZE / BLOCK_SECTOR_SIZE) + i, (uint8_t *)kaddr + i * BLOCK_SECTOR_SIZE);
 
   lock_release (&swap_lock);
   return out;

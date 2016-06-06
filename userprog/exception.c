@@ -176,6 +176,10 @@ page_fault (struct intr_frame *f)
 
   if (!result)
   {
+    // printf("omg.. handle_mm_fault fail..\n");
+    // if (vme == NULL)
+    //   printf("vme is NULL\n");
+    // printf("fault_addr : %p\n", fault_addr);
     exit(-1);
     // /* To implement virtual memory, delete the rest of the function
     //    body, and replace it with code that brings in the page to
