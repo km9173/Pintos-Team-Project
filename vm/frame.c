@@ -84,7 +84,7 @@ alloc_page (enum palloc_flags flags)
     palloc_free_page (kpage);
     return NULL;
   }
-
+  memset (kpage, 0, 4096);
   new_page->kaddr = kpage;
   new_page->vme = NULL; // (struct vm_entry *)malloc(sizeof(struct vm_entry));
   new_page->thread = thread_current ();
