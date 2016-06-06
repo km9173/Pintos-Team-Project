@@ -629,6 +629,8 @@ setup_stack (void **esp)
     vme->read_bytes = 0;
     vme->zero_bytes = PGSIZE;
     success = insert_vme (&thread_current ()->vm, vme);
+    // change alloc_page needs allocation
+    spage->vme = vme;
   }
   else
     free(vme);
@@ -718,6 +720,7 @@ handle_mm_fault (struct vm_entry *vme)
 {
   // void *kpage = palloc_get_page (PAL_USER);
   struct page *spage = alloc_page (PAL_USER);
+  spage->vme = vme;
 
   if (spage == NULL)
     return false;

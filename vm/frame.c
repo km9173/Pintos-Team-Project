@@ -110,7 +110,7 @@ void
 __free_page (struct page* page)
 {
   list_remove (&page->lru_elem);
-  palloc_free_page (&page->kaddr);
+  palloc_free_page (page->kaddr);
   free (page);
 }
 
@@ -123,18 +123,25 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
   for (elem = get_next_lru_clock (); true; elem = get_next_lru_clock ())
   {
     struct page *p = list_entry (elem, struct page, lru_elem);
+    //printf("try%x, %x", p, p->vme);
     if (p != NULL && p->vme != NULL)
     {
-      if (pagedir_is_accessed(p->thread->pagedir, p->vme->vaddr))
+      //printf("get page-");
+      if (pagedir_is_accessed(p->thread->pagedir, p->vme->vaddr)) {
         pagedir_set_accessed (p->thread->pagedir, p->vme->vaddr, false);
+        //printf("set 0-");
+      }
       else
       {
         kaddr = p->kaddr;
         if (p->vme->type == VM_BIN)
         {
           if (pagedir_is_dirty(p->thread->pagedir, p->vme->vaddr))
-            swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
-          p->vme->type = VM_ANON;
+          {
+            p->vme->swap_slot = swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
+            p->vme->type = VM_ANON;
+          }
+          //printf("BtA-");
         }
 
         else if (p->vme->type == VM_FILE)
@@ -144,29 +151,32 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
             lock_acquire(&filesys_lock);
             file_write_at(p->vme->file, p->vme->vaddr, p->vme->read_bytes, p->vme->offset);
             lock_release(&filesys_lock);
+            //printf("F-");
           }
         }
 
         else if (p->vme->type == VM_ANON)
         {
-          swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
+          p->vme->swap_slot = swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
+          //printf("A-");
         }
 
         else
         {
           // expect not reach here
           // if reach here then must be error case
-          printf("error!\n");
+          printf("err ");
           return NULL;
         }
-        __free_page (p); // palloc_free_page (p->kaddr);
         pagedir_clear_page (p->thread->pagedir, p->vme->vaddr);
+        free_page (p->kaddr); // palloc_free_page (p->kaddr);
+        //printf("fin! ");
         return kaddr;
       }
     }
-    else
-      printf("error!\n");// something error
-
-    return NULL;
+    //else 
+      // printf("err ");// something error
   }
+  printf("failed.. ");
+  return NULL;
 }
