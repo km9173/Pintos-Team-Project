@@ -64,7 +64,7 @@ get_next_lru_clock ()
 struct page *
 alloc_page (enum palloc_flags flags)
 {
-  uint8_t *kpage = NULL;
+  void *kpage = NULL;
   struct page *new_page = NULL;
 
   kpage = palloc_get_page (flags);
@@ -174,7 +174,7 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
         return kaddr;
       }
     }
-    //else 
+    //else
       // printf("err ");// something error
   }
   printf("failed.. ");

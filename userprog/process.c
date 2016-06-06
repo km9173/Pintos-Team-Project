@@ -747,6 +747,8 @@ handle_mm_fault (struct vm_entry *vme)
 
     case VM_ANON:
       swap_in (vme->swap_slot, spage->kaddr);
+      if (!install_page (vme->vaddr, spage->kaddr, vme->writable))
+        return false;
       return true;
   }
   return false;
