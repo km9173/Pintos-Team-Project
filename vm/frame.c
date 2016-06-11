@@ -86,7 +86,7 @@ alloc_page (enum palloc_flags flags)
   }
   memset (kpage, 0, 4096);
   new_page->kaddr = kpage;
-  new_page->vme = NULL; // (struct vm_entry *)malloc(sizeof(struct vm_entry));
+  new_page->vme = NULL;
   new_page->thread = thread_current ();
   add_page_to_lru_list (new_page);
   lock_release (&lru_list_lock);
@@ -98,6 +98,7 @@ void
 free_page (void *addr)
 {
   struct list_elem *it;
+  lock_acquire (&lru_list_lock);
   for (it = list_begin (&lru_list); it != list_end (&lru_list); it = list_next (it)) {
     struct page *p = list_entry (it, struct page, lru_elem);
     if (addr == p->kaddr) {
@@ -105,6 +106,7 @@ free_page (void *addr)
       break;
     }
   }
+  lock_release (&lru_list_lock);
 }
 
 void
@@ -126,12 +128,10 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
   {
     struct page *p = list_entry (elem, struct page, lru_elem);
     //printf("try%x, %x", p, p->vme);
-    if (p != NULL && p->vme != NULL)
+    if (p != NULL && p->vme != NULL && p->vme->is_loaded)
     {
-      //printf("get page-");
       if (pagedir_is_accessed(p->thread->pagedir, p->vme->vaddr)) {
         pagedir_set_accessed (p->thread->pagedir, p->vme->vaddr, false);
-        //printf("set 0-");
       }
       else
       {
@@ -143,7 +143,6 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
             p->vme->swap_slot = swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
             p->vme->type = VM_ANON;
           }
-          //printf("BtA-");
         }
 
         else if (p->vme->type == VM_FILE)
@@ -151,9 +150,8 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
           if (p->vme->is_loaded && pagedir_is_dirty(p->thread->pagedir, p->vme->vaddr))
           {
             lock_acquire(&filesys_lock);
-            file_write_at(p->vme->file, p->vme->vaddr, p->vme->read_bytes, p->vme->offset);
+            file_write_at(p->vme->file, p->kaddr, p->vme->read_bytes, p->vme->offset);
             lock_release(&filesys_lock);
-            //printf("F-");
           }
         }
 
@@ -167,10 +165,12 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
         {
           // expect not reach here
           // if reach here then must be error case
-          printf("err ");
+          // printf("p->kaddr : %p\n", p->kaddr);
+          // printf("p->vme->vaddr : %p\n", p->vme->vaddr);
           return NULL;
         }
         pagedir_clear_page (p->thread->pagedir, p->vme->vaddr);
+        p->vme->is_loaded = false;
         __free_page (p); // palloc_free_page (p->kaddr);
         //printf("fin! ");
         return kaddr;

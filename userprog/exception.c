@@ -166,7 +166,7 @@ page_fault (struct intr_frame *f)
 
   if (not_present)
   {
-    if ((fault_addr > (void *) 0x08048000 && is_user_vaddr(fault_addr)) || !user)
+    if ((fault_addr > (void *) 0x08048000 && is_user_vaddr(fault_addr)))
     {
       vme = find_vme (fault_addr);
       if (vme != NULL)
