@@ -319,7 +319,11 @@ read (int fd, void *buffer, unsigned size)
     if (f == NULL)
       read_size = -1;
     else
+    {
+      // printf("[read syscall] fd : %d\n", fd);
+      // printf("[read syscall] buffer addr : %p\n", buffer);
       read_size = file_read(f, buffer, size);
+    }
   }
 
   lock_release(&filesys_lock);

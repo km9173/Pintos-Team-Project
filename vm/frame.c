@@ -3,6 +3,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include "vm/swap.h"
+#include "threads/vaddr.h"
 #include "threads/synch.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
@@ -53,7 +54,7 @@ static struct list_elem *
 get_next_lru_clock ()
 {
   // lock_acquire (&lru_list_lock);
-  if (lru_clock == NULL || lru_clock == list_end (&lru_list))
+  if (lru_clock == NULL || lru_clock == list_rbegin (&lru_list))
     lru_clock = list_begin (&lru_list);
   else
     lru_clock = list_next (lru_clock);
@@ -128,7 +129,7 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
   {
     struct page *p = list_entry (elem, struct page, lru_elem);
     //printf("try%x, %x", p, p->vme);
-    if (p != NULL && p->vme != NULL && p->vme->is_loaded)
+    if (p != NULL && p->vme != NULL && p->vme->is_loaded && (void *) 0x08048000 <= p->vme->vaddr && p->vme->vaddr < (void *) 0xc0000000 && pg_ofs (p->vme->vaddr) == 0)
     {
       if (pagedir_is_accessed(p->thread->pagedir, p->vme->vaddr)) {
         pagedir_set_accessed (p->thread->pagedir, p->vme->vaddr, false);
