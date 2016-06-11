@@ -746,6 +746,9 @@ handle_mm_fault (struct vm_entry *vme)
       return true;
 
     case VM_ANON:
+      // printf("[handle_mm_fault] vme->vaddr : %p\n", vme->vaddr);
+      // printf("[handle_mm_fault] spage->kaddr : %p\n", spage->kaddr);
+      // printf("[handle_mm_fault] vme->swap_slot : %d\n", vme->swap_slot);
       swap_in (vme->swap_slot, spage->kaddr);
       if (!install_page (vme->vaddr, spage->kaddr, vme->writable))
       {
@@ -753,10 +756,7 @@ handle_mm_fault (struct vm_entry *vme)
         free_page (spage->kaddr);
         return false;
       }
-      // printf("1\n");
-      // printf("2\n");
       vme->is_loaded = true;
-      // printf("3\n");
       return true;
   }
   return false;

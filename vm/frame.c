@@ -46,6 +46,8 @@ void
 del_page_from_lru_list (struct page* page)
 {
   // lock_acquire (&lru_list_lock);
+  if (lru_clock == &page->lru_elem)
+    lru_clock = get_next_lru_clock ();
   list_remove (&page->lru_elem);
   // lock_release (&lru_list_lock);
 }
@@ -141,6 +143,7 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
         {
           if (pagedir_is_dirty(p->thread->pagedir, p->vme->vaddr))
           {
+            // printf("[swap_out] vme->vaddr : %p\n", p->vme->vaddr);
             p->vme->swap_slot = swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
             p->vme->type = VM_ANON;
           }
@@ -158,6 +161,7 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
 
         else if (p->vme->type == VM_ANON)
         {
+          // printf("[swap_out] vme->vaddr : %p\n", p->vme->vaddr);
           p->vme->swap_slot = swap_out (p->kaddr); // TODO : return 값으로 무엇을 할지 고민
           //printf("A-");
         }
@@ -170,10 +174,9 @@ try_to_free_pages (enum palloc_flags flags UNUSED)
           // printf("p->vme->vaddr : %p\n", p->vme->vaddr);
           return NULL;
         }
-        pagedir_clear_page (p->thread->pagedir, p->vme->vaddr);
         p->vme->is_loaded = false;
-        __free_page (p); // palloc_free_page (p->kaddr);
-        //printf("fin! ");
+        pagedir_clear_page (p->thread->pagedir, p->vme->vaddr);
+        __free_page (p);
         return kaddr;
       }
     }

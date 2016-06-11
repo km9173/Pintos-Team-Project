@@ -268,10 +268,15 @@ open (const char *file)
   if (file == NULL)
     return -1;
 
+  lock_acquire (&filesys_lock);
+
   f = filesys_open(file);
 
   if (f == NULL)
+  {
+    lock_release (&filesys_lock);
     return -1;
+  }
 
   while(t->fd_table[fd])
     fd++;
@@ -281,6 +286,7 @@ open (const char *file)
   if (fd == t->fd_size)
     t->fd_size++;
 
+  lock_release (&filesys_lock);
   return fd;
 }
 
@@ -301,7 +307,6 @@ read (int fd, void *buffer, unsigned size)
   unsigned i = 0;
   int read_size = 0;
 
-  lock_acquire(&filesys_lock);
 
   if (fd == STDIN_FILENO)
   {
@@ -314,6 +319,7 @@ read (int fd, void *buffer, unsigned size)
 
   else
   {
+    lock_acquire(&filesys_lock);
     f = process_get_file(fd);
 
     if (f == NULL)
@@ -324,9 +330,8 @@ read (int fd, void *buffer, unsigned size)
       // printf("[read syscall] buffer addr : %p\n", buffer);
       read_size = file_read(f, buffer, size);
     }
+    lock_release(&filesys_lock);
   }
-
-  lock_release(&filesys_lock);
 
   return read_size;
 }
@@ -340,7 +345,7 @@ write (int fd, void *buffer, unsigned size)
   if (fd == STDIN_FILENO)
 		return -1;
 
-  lock_acquire (&filesys_lock);
+
 
   if (fd == STDOUT_FILENO)
   {
@@ -350,14 +355,15 @@ write (int fd, void *buffer, unsigned size)
 
   else
   {
+    lock_acquire (&filesys_lock);
     f = process_get_file (fd);
     if (f == NULL)
       read_size = -1;
     else
       read_size = file_write (f, buffer, size);
-  }
 
-  lock_release (&filesys_lock);
+    lock_release (&filesys_lock);
+  }
 
   return read_size;
 }
@@ -381,10 +387,12 @@ tell (int fd)
 void
 close (int fd)
 {
+  lock_acquire (&filesys_lock);
   struct thread *t = thread_current();
 
   process_close_file(fd);
   t->fd_size--;
+  lock_release (&filesys_lock);
 }
 
 void
