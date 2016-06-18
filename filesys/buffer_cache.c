@@ -1,6 +1,11 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "filesys/buffer_cache.h"
 #include "filesys/filesys.h"
-#include "block.h"
+#include "filesys/inode.h"
+#include "devices/block.h"
+#include "threads/malloc.h"
 
 /* 64 * 512 byte = 32KByte */
 #define BUFFER_CACHE_ENTRY_NB 64
@@ -23,7 +28,7 @@ bool
 bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_size, int sector_ofs)
 {
   /* sector_idx를buffer_head에서검색(bc_lookup함수이용)*/
-  buffer_head* cache = bc_lookup (sector_idx);
+  struct buffer_head* cache = bc_lookup (sector_idx);
 
   if (!cache) {
     cache = bc_select_victim ();
@@ -34,20 +39,22 @@ bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_si
       return false;
     }
     /* block_read함수를이용해, 디스크블록데이터를buffer cache로read */
-    block_read (cache->block, sector_idx, buffer);
+    block_read (cache->data, sector_idx, buffer);
   }
   /* memcpy함수를통해, buffer에디스크블록데이터를복사*/
-  memcpy (cache->data, buffer, bytes_read);
+  memcpy (cache->data + sector_ofs, buffer + bytes_read, chunk_size);
 
   /* buffer_head의clock bit을setting */
-  buffer_head->clock_bit = true;
+  cache->clock_bit = true;
+
+  return true;
 }
 
 bool
 bc_write (block_sector_t sector_idx, void *buffer, off_t bytes_written, int chunk_size, int sector_ofs)
 {
   int i = 0;
-  bool success = false; // TODO : 쓸지말지 고민..
+  // bool success = false; // TODO : 쓸지말지 고민..
   struct buffer_head* cached = NULL;
 
   // check if entry exist
@@ -147,9 +154,9 @@ bc_select_victim (void)
   // lock이 필요한 지 의문
   while (!buffer_head_table[i].clock_bit) {
     if (buffer_head_table[i].clock_bit) {
-      lock_acquire (buffer_head_table[i].buffer_head_lock);
+      lock_acquire (&buffer_head_table[i].buffer_head_lock);
       buffer_head_table[i].clock_bit = false;
-      lock_release (buffer_head_table[i].buffer_head_lock);
+      lock_release (&buffer_head_table[i].buffer_head_lock);
     }
     else {
       /* 선택된victim entry가dirty일경우, 디스크로flush */
@@ -161,14 +168,14 @@ bc_select_victim (void)
   }
 
   /* victim entry에해당하는buffer_head값update */
-  lock_acquire (buffer_head_table[i].buffer_head_lock);
+  lock_acquire (&buffer_head_table[i].buffer_head_lock);
   buffer_head_table[i].dirty = false;
   buffer_head_table[i].used = false;
   buffer_head_table[i].sector = 0;
   buffer_head_table[i].inode = NULL;
   buffer_head_table[i].data = NULL;
   buffer_head_table[i].clock_bit = false;
-  lock_release (buffer_head_table[i].buffer_head_lock);
+  lock_release (&buffer_head_table[i].buffer_head_lock);
 
   /* victim entry를return */
   return &buffer_head_table[i];
@@ -190,10 +197,10 @@ bc_lookup (block_sector_t sector)
 void
 bc_flush_entry (struct buffer_head *p_flush_entry)
 {
-  lock_acquire (buffer_head_table[i].buffer_head_lock);
-  block_write (struct block *block, p_flush_entry->sector, p_flush_entry->data);
+  lock_acquire (&p_flush_entry->buffer_head_lock);
+  block_write (p_flush_entry->data, p_flush_entry->sector, p_flush_entry->data);
   p_flush_entry->dirty = false;
-  lock_release (buffer_head_table[i].buffer_head_lock);
+  lock_release (&p_flush_entry->buffer_head_lock);
 }
 
 void

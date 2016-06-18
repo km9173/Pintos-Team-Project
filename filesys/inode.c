@@ -224,7 +224,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       if (sector_ofs == 0 && chunk_size == BLOCK_SECTOR_SIZE)
         {
           /* Read full sector directly into caller's buffer. */
-          bc_read (fs_device, sector_idx, buffer + bytes_read);
+          bc_read (sector_idx, buffer, bytes_read, chunk_size, sector_ofs);
         }
       else
         {
@@ -236,7 +236,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
               if (bounce == NULL)
                 break;
             }
-          bc_read (fs_device, sector_idx, bounce);
+          bc_read (sector_idx, bounce, bytes_read, chunk_size, sector_ofs);
           memcpy (buffer + bytes_read, bounce + sector_ofs, chunk_size);
         }
 
