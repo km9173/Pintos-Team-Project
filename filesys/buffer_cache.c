@@ -11,8 +11,7 @@
 #define BUFFER_CACHE_ENTRY_NB 64
 
 // buffer cache 메모리 영역을 가리킴
-// TODO : 맞는지 확인필요..
-static void *p_buffer_cache;
+static void *p_buffer_cache[BUFFER_CACHE_ENTRY_NB];
 
 // buffer head 배열
 static struct buffer_head buffer_head_table[BUFFER_CACHE_ENTRY_NB];
@@ -111,16 +110,18 @@ bc_init (void)
 
   /* Allocation buffer cache in Memory */
   /* p_buffer_cache가buffer cache 영역포인팅*/
-  p_buffer_cache = malloc(sizeof(BLOCK_SECTOR_SIZE) * BUFFER_CACHE_ENTRY_NB);
+  for (i = 0; i < BUFFER_CACHE_ENTRY_NB; i++) {
+    p_buffer_cache[i] = malloc(sizeof(BLOCK_SECTOR_SIZE) * BUFFER_CACHE_ENTRY_NB);
+    // temp = malloc(sizeof(BLOCK_SECTOR_SIZE) * BUFFER_CACHE_ENTRY_NB);
+  }
 
   /* 전역변수buffer_head자료구조초기화*/
-  // TODO: 필요 없을 가능성 높으니 구현 끝나면 테스트 후 삭제
   for (i = 0; i < BUFFER_CACHE_ENTRY_NB; i++) {
     buffer_head_table[i].dirty = false;
     buffer_head_table[i].used = false;
     buffer_head_table[i].sector = 0;
     buffer_head_table[i].inode = NULL;
-    buffer_head_table[i].data = NULL;
+    buffer_head_table[i].data = p_buffer_cache[i];
     lock_init (&buffer_head_table[i].buffer_head_lock);
     buffer_head_table[i].clock_bit = false;
   }
