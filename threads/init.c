@@ -125,6 +125,7 @@ main (void)
   /* Initialize file system. */
   ide_init ();
   locate_block_devices ();
+  bc_init ();
   filesys_init (format_filesys);
 #endif
 

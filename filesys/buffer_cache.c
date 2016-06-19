@@ -48,7 +48,8 @@ bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_si
     lock_release (&cached->buffer_head_lock);
   }
   /* memcpy함수를통해, buffer에디스크블록데이터를복사*/
-  memcpy (cached->data + sector_ofs, buffer + bytes_read, chunk_size);
+  // memcpy (cached->data + sector_ofs, buffer + bytes_read, chunk_size);
+  memcpy (buffer + bytes_read, cached->data + sector_ofs, chunk_size);
 
   /* buffer_head의clock bit을setting */
   cached->clock_bit = true;
@@ -84,6 +85,7 @@ bc_write (block_sector_t sector_idx, void *buffer, off_t bytes_written, int chun
 
   cached->used = true;   // 매번 used true 해줘야하는기 고민할 필요가있음.. flsuh 하면 뭐뭐가 바뀌는지 알아보자.
   cached->dirty = true;
+  cached->clock_bit = true;
 
   return true;
 }
