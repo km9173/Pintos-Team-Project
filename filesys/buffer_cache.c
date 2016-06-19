@@ -29,7 +29,7 @@ bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_si
   /* sector_idx를buffer_head에서검색(bc_lookup함수이용)*/
   struct buffer_head* cached = bc_lookup (sector_idx);
 
-  if (!cached) {
+  if (cached == NULL) {
     cached = bc_select_victim ();
 
     // for debugging
@@ -42,17 +42,22 @@ bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_si
     cached->dirty = false;
     cached->used = true;
     cached->sector = sector_idx;
+    // printf("[bc_read] cached->inode addr : %p\n", (void *)cached->inode);
     cached->inode = inode_open (sector_idx);
+    // printf("[bc_read] cached->inode addr : %p\n", (void *)cached->inode);
+    // printf("[bc_read] cached->inode->sector : %d\n", (int)cached->inode->sector);
     /* block_read함수를이용해, 디스크블록데이터를buffer cache로read */
     block_read (fs_device, sector_idx, cached->data);
-    lock_release (&cached->buffer_head_lock);
   }
+  else
+    lock_acquire (&cached->buffer_head_lock);
   /* memcpy함수를통해, buffer에디스크블록데이터를복사*/
   // memcpy (cached->data + sector_ofs, buffer + bytes_read, chunk_size);
   memcpy (buffer + bytes_read, cached->data + sector_ofs, chunk_size);
 
   /* buffer_head의clock bit을setting */
   cached->clock_bit = true;
+  lock_release (&cached->buffer_head_lock);
 
   return true;
 }
@@ -75,18 +80,28 @@ bc_write (block_sector_t sector_idx, void *buffer, off_t bytes_written, int chun
     if (cached->data == NULL)
       return false;
 
+    lock_acquire (&cached->buffer_head_lock);
+
     cached->sector = sector_idx;
+    // printf("[bc_write] cached->inode addr : %p\n", (void *)cached->inode);
     cached->inode = inode_open (sector_idx);
+    // printf("[bc_write] cached->inode addr : %p\n", (void *)cached->inode);
+    // printf("[bc_write] cached->inode->sector : %d\n", (int)cached->inode->sector);
 
     block_read (fs_device, sector_idx, cached->data);
   }
+  else
+    lock_acquire (&cached->buffer_head_lock);
 
   memcpy (cached->data + sector_ofs, buffer + bytes_written, chunk_size);
+  // printf("[bc_write] cached->data : %s\n", (char *)cached->data);
+
+  bc_flush_entry (cached);
 
   cached->used = true;   // 매번 used true 해줘야하는기 고민할 필요가있음.. flsuh 하면 뭐뭐가 바뀌는지 알아보자.
   cached->dirty = true;
   cached->clock_bit = true;
-
+  lock_release (&cached->buffer_head_lock);
   return true;
 }
 
@@ -153,19 +168,23 @@ bc_select_victim (void)
       buffer_head_table[i].clock_bit = false;
       lock_release (&buffer_head_table[i].buffer_head_lock);
     }
-    else {
-      /* 선택된victim entry가dirty일경우, 디스크로flush */
-      if (buffer_head_table[i].dirty) {
-        bc_flush_entry (&buffer_head_table[i]);
-        break;
-      }
-    }
+    // else {
+    //   /* 선택된victim entry가dirty일경우, 디스크로flush */
+    //   if (buffer_head_table[i].dirty) {
+    //     printf("bye.....flush\n");
+    //     bc_flush_entry (&buffer_head_table[i]);
+    //     break;
+    //   }
+    // }
 
     if (i >= BUFFER_CACHE_ENTRY_NB)
       i = 0;
     else
       i++;
   }
+
+  if (buffer_head_table[i].dirty)
+    bc_flush_entry (&buffer_head_table[i]);
 
   /* victim entry에해당하는buffer_head값update */
   lock_acquire (&buffer_head_table[i].buffer_head_lock);
@@ -211,6 +230,17 @@ bc_flush_all_entries (void)
   for (i = 0; i < BUFFER_CACHE_ENTRY_NB; i++)
   {
     if (buffer_head_table[i].used && buffer_head_table[i].dirty)
+      bc_flush_entry(&buffer_head_table[i]);
+  }
+}
+
+void
+bc_flush_inode_entries (struct inode *inode)
+{
+  int i = 0;
+  for (i = 0; i < BUFFER_CACHE_ENTRY_NB; i++)
+  {
+    if (buffer_head_table[i].used && buffer_head_table[i].inode == inode)
       bc_flush_entry(&buffer_head_table[i]);
   }
 }

@@ -168,6 +168,9 @@ inode_close (struct inode *inode)
   if (inode == NULL)
     return;
 
+  // Project 15
+  // bc_flush_inode_entries (inode);
+
   /* Release resources if this was the last opener. */
   if (--inode->open_cnt == 0)
     {
