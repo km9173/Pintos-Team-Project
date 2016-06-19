@@ -166,6 +166,7 @@ bc_select_victim (void)
       return &buffer_head_table[i];
 
   // lock이 필요한 지 의문
+  i = 0;
   while (!buffer_head_table[i].clock_bit) {
     if (buffer_head_table[i].clock_bit) {
       lock_acquire (&buffer_head_table[i].buffer_head_lock);
@@ -179,6 +180,11 @@ bc_select_victim (void)
         break;
       }
     }
+
+    if (i >= BUFFER_CACHE_ENTRY_NB)
+      i = 0;
+    else
+      i++;
   }
 
   /* victim entry에해당하는buffer_head값update */
