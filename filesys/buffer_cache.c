@@ -27,31 +27,31 @@ bool
 bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_size, int sector_ofs)
 {
   /* sector_idx를buffer_head에서검색(bc_lookup함수이용)*/
-  struct buffer_head* cache = bc_lookup (sector_idx);
+  struct buffer_head* cached = bc_lookup (sector_idx);
 
-  if (!cache) {
-    cache = bc_select_victim ();
+  if (!cached) {
+    cached = bc_select_victim ();
 
     // for debugging
-    if (!cache) {
+    if (!cached) {
       printf("bc_read : Shouldn't happen!\n");
       return false;
     }
 
-    lock_acquire (&cache->buffer_head_lock);
+    lock_acquire (&cached->buffer_head_lock);
     cached->dirty = false;
     cached->used = true;
     cached->sector = sector_idx;
     cached->inode = inode_open (sector_idx);
     /* block_read함수를이용해, 디스크블록데이터를buffer cache로read */
-    block_read (cache->data, sector_idx, buffer);
-    lock_release (&cache->buffer_head_lock);
+    block_read (cached->data, sector_idx, buffer);
+    lock_release (&cached->buffer_head_lock);
   }
   /* memcpy함수를통해, buffer에디스크블록데이터를복사*/
-  memcpy (cache->data + sector_ofs, buffer + bytes_read, chunk_size);
+  memcpy (cached->data + sector_ofs, buffer + bytes_read, chunk_size);
 
   /* buffer_head의clock bit을setting */
-  cache->clock_bit = true;
+  cached->clock_bit = true;
 
   return true;
 }
