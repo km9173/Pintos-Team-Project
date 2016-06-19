@@ -48,16 +48,14 @@ bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_si
     // printf("[bc_read] cached->inode->sector : %d\n", (int)cached->inode->sector);
     /* block_read함수를이용해, 디스크블록데이터를buffer cache로read */
     block_read (fs_device, sector_idx, cached->data);
+    lock_release (&cached->buffer_head_lock);
   }
-  else
-    lock_acquire (&cached->buffer_head_lock);
   /* memcpy함수를통해, buffer에디스크블록데이터를복사*/
   // memcpy (cached->data + sector_ofs, buffer + bytes_read, chunk_size);
   memcpy (buffer + bytes_read, cached->data + sector_ofs, chunk_size);
 
   /* buffer_head의clock bit을setting */
   cached->clock_bit = true;
-  lock_release (&cached->buffer_head_lock);
 
   return true;
 }
@@ -80,8 +78,6 @@ bc_write (block_sector_t sector_idx, void *buffer, off_t bytes_written, int chun
     if (cached->data == NULL)
       return false;
 
-    lock_acquire (&cached->buffer_head_lock);
-
     cached->sector = sector_idx;
     // printf("[bc_write] cached->inode addr : %p\n", (void *)cached->inode);
     cached->inode = inode_open (sector_idx);
@@ -90,18 +86,15 @@ bc_write (block_sector_t sector_idx, void *buffer, off_t bytes_written, int chun
 
     block_read (fs_device, sector_idx, cached->data);
   }
-  else
-    lock_acquire (&cached->buffer_head_lock);
 
   memcpy (cached->data + sector_ofs, buffer + bytes_written, chunk_size);
   // printf("[bc_write] cached->data : %s\n", (char *)cached->data);
-
   bc_flush_entry (cached);
 
   cached->used = true;   // 매번 used true 해줘야하는기 고민할 필요가있음.. flsuh 하면 뭐뭐가 바뀌는지 알아보자.
   cached->dirty = true;
   cached->clock_bit = true;
-  lock_release (&cached->buffer_head_lock);
+
   return true;
 }
 
