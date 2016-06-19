@@ -98,7 +98,7 @@ bc_init (void)
   /* Allocation buffer cache in Memory */
   /* p_buffer_cache가buffer cache 영역포인팅*/
   for (i = 0; i < BUFFER_CACHE_ENTRY_NB; i++) {
-    p_buffer_cache[i] = malloc(sizeof(BLOCK_SECTOR_SIZE) * BUFFER_CACHE_ENTRY_NB);
+    p_buffer_cache[i] = (void *)malloc(BLOCK_SECTOR_SIZE);
     // temp = malloc(sizeof(BLOCK_SECTOR_SIZE) * BUFFER_CACHE_ENTRY_NB);
   }
 
@@ -125,12 +125,12 @@ bc_term (void)
   {
     if (buffer_head_table[i].used && buffer_head_table[i].data != NULL)
       free (buffer_head_table[i].data);
-      buffer_head_table[i].dirty = false;
-      buffer_head_table[i].used = false;
-      buffer_head_table[i].sector = 0;
-      buffer_head_table[i].inode = NULL;
-      buffer_head_table[i].data = NULL;
-      buffer_head_table[i].clock_bit = false;
+    buffer_head_table[i].dirty = false;
+    buffer_head_table[i].used = false;
+    buffer_head_table[i].sector = 0;
+    buffer_head_table[i].inode = NULL;
+    buffer_head_table[i].data = NULL;
+    buffer_head_table[i].clock_bit = false;
   }
 }
 
