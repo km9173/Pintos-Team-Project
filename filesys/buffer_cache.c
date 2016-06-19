@@ -63,7 +63,7 @@ bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_si
 bool
 bc_write (block_sector_t sector_idx, void *buffer, off_t bytes_written, int chunk_size, int sector_ofs)
 {
-  int i = 0;
+  //int i = 0;
   // bool success = false; // TODO : 쓸지말지 고민..
   struct buffer_head* cached = NULL;
 
