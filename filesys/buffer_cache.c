@@ -60,7 +60,7 @@ bc_write (block_sector_t sector_idx, void *buffer, off_t bytes_written, int chun
   cached = bc_lookup (sector_idx);
 
   // if not exist in entry
-  if (i >= BUFFER_CACHE_ENTRY_NB || cached == NULL)
+  if (cached == NULL)
   {
     for (i = 0; i < BUFFER_CACHE_ENTRY_NB; i++)
     {
@@ -77,14 +77,21 @@ bc_write (block_sector_t sector_idx, void *buffer, off_t bytes_written, int chun
     {
       cached = bc_select_victim ();
       if (cached->dirty)
-      {
         bc_flush_entry (cached);
-      }
-      free (cached->data);
     }
 
-    cached->data = malloc (BLOCK_SECTOR_SIZE);
+    // TODO: 만약 cached->data가 NULL인 경우가 있을까?
+    // if (cached->data == NULL)
+    // {
+    //   p_buffer_cache
+    // }
+
     memset (cached->data, 0, BLOCK_SECTOR_SIZE);
+    cached->dirty = false;
+    cached->used = false;
+    cached->sector = 0;
+    cached->inode = NULL;
+    cached->clock_bit = false;
 
     if (cached->data == NULL)
       return false;
@@ -138,6 +145,12 @@ bc_term (void)
   {
     if (buffer_head_table[i].used && buffer_head_table[i].data != NULL)
       free (buffer_head_table[i].data);
+      buffer_head_table[i].dirty = false;
+      buffer_head_table[i].used = false;
+      buffer_head_table[i].sector = 0;
+      buffer_head_table[i].inode = NULL;
+      buffer_head_table[i].data = NULL;
+      buffer_head_table[i].clock_bit = false;
   }
 }
 
