@@ -44,7 +44,7 @@ bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_si
     cached->sector = sector_idx;
     cached->inode = inode_open (sector_idx);
     /* block_read함수를이용해, 디스크블록데이터를buffer cache로read */
-    block_read (cached->data, sector_idx, buffer);
+    block_read (fs_device, sector_idx, cached->data);
     lock_release (&cached->buffer_head_lock);
   }
   /* memcpy함수를통해, buffer에디스크블록데이터를복사*/
@@ -196,7 +196,7 @@ void
 bc_flush_entry (struct buffer_head *p_flush_entry)
 {
   lock_acquire (&p_flush_entry->buffer_head_lock);
-  block_write (p_flush_entry->data, p_flush_entry->sector, p_flush_entry->data);
+  block_write (fs_device, p_flush_entry->sector, p_flush_entry->data);
   p_flush_entry->dirty = false;
   lock_release (&p_flush_entry->buffer_head_lock);
 }
