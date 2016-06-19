@@ -69,36 +69,7 @@ bc_write (block_sector_t sector_idx, void *buffer, off_t bytes_written, int chun
   // if not exist in entry
   if (cached == NULL)
   {
-    for (i = 0; i < BUFFER_CACHE_ENTRY_NB; i++)
-    {
-      if (!buffer_head_table[i].used)
-      {
-        buffer_head_table[i].used = true;
-        cached = &buffer_head_table[i];
-        break;
-      }
-    }
-
-    // if cached full
-    if (cached == NULL)
-    {
-      cached = bc_select_victim ();
-      if (cached->dirty)
-        bc_flush_entry (cached);
-    }
-
-    // TODO: 만약 cached->data가 NULL인 경우가 있을까?
-    // if (cached->data == NULL)
-    // {
-    //   p_buffer_cache
-    // }
-
-    memset (cached->data, 0, BLOCK_SECTOR_SIZE);
-    cached->dirty = false;
-    cached->used = false;
-    cached->sector = 0;
-    cached->inode = NULL;
-    cached->clock_bit = false;
+    cached = bc_select_victim ();
 
     if (cached->data == NULL)
       return false;
