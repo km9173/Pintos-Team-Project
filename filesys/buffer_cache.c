@@ -37,8 +37,15 @@ bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_si
       printf("bc_read : Shouldn't happen!\n");
       return false;
     }
+
+    lock_acquire (&cache->buffer_head_lock);
+    cached->dirty = false;
+    cached->used = true;
+    cached->sector = sector_idx;
+    cached->inode = inode_open (sector_idx);
     /* block_read함수를이용해, 디스크블록데이터를buffer cache로read */
     block_read (cache->data, sector_idx, buffer);
+    lock_release (&cache->buffer_head_lock);
   }
   /* memcpy함수를통해, buffer에디스크블록데이터를복사*/
   memcpy (cache->data + sector_ofs, buffer + bytes_read, chunk_size);
@@ -193,7 +200,7 @@ bc_select_victim (void)
   buffer_head_table[i].used = false;
   buffer_head_table[i].sector = 0;
   buffer_head_table[i].inode = NULL;
-  buffer_head_table[i].data = NULL;
+  memset (buffer_head_table[i].data, 0, BLOCK_SECTOR_SIZE);
   buffer_head_table[i].clock_bit = false;
   lock_release (&buffer_head_table[i].buffer_head_lock);
 
