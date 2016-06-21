@@ -37,6 +37,7 @@ struct inode_indirect_block
 
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
+// struct inode_disk size is 512 byte
 struct inode_disk
   {
     off_t length;                       /* File size in bytes. */
@@ -387,9 +388,7 @@ get_disk_inode (const struct inode *inode, struct inode_disk *inode_disk)
   */
   /* true 반환 */
 
-  bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_size, int sector_ofs);
-
-  return true;
+  return bc_read (inode->sector, (void *)inode_disk, 0, BLOCK_SECTOR_SIZE, 0);
 }
 
 static void
