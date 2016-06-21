@@ -168,12 +168,12 @@ inode_close (struct inode *inode)
   if (inode == NULL)
     return;
 
-  // Project 15
-  // bc_flush_inode_entries (inode);
-
   /* Release resources if this was the last opener. */
   if (--inode->open_cnt == 0)
     {
+      // Project 15
+      bc_flush_inode_entries (inode);
+
       /* Remove from inode list and release lock. */
       list_remove (&inode->elem);
 
@@ -229,8 +229,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       // if (sector_ofs == 0 && chunk_size == BLOCK_SECTOR_SIZE)
       //   {
       //     /* Read full sector directly into caller's buffer. */
-      //     // block_read (fs_device, sector_idx, buffer + bytes_read);
-      //     bc_read (sector_idx, buffer, bytes_read, chunk_size, sector_ofs);
+      //     block_read (fs_device, sector_idx, buffer + bytes_read);
       //   }
       // else
       //   {
@@ -243,7 +242,6 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       //           break;
       //       }
       //     block_read (fs_device, sector_idx, bounce);
-      //     // bc_read (sector_idx, bounce, bytes_read, chunk_size, sector_ofs);
       //     memcpy (buffer + bytes_read, bounce + sector_ofs, chunk_size);
       //   }
 
@@ -296,7 +294,6 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
       //     /* Write full sector directly to disk. */
       //     // Project 15
       //     block_write (fs_device, sector_idx, buffer + bytes_written);
-      //     // bc_write (sector_idx, buffer, bytes_written, chunk_size, sector_ofs);
       //   }
       // else
       //   {
@@ -317,8 +314,6 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
       //       memset (bounce, 0, BLOCK_SECTOR_SIZE);
       //     memcpy (bounce + sector_ofs, buffer + bytes_written, chunk_size);
       //     block_write (fs_device, sector_idx, bounce);
-      //     // TODO: chunk_size 가 SECTOR_SIZE 보다 작으면 bc_write 안쓰나?
-      //     // bc_write (sector_idx, bounce, bytes_written, chunk_size, sector_ofs);
       //   }
 
       /* Advance. */

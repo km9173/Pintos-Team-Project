@@ -135,7 +135,7 @@ main (void)
   run_actions (argv);
 
   // Project 15 buffer cache
-  bc_term ();
+  // bc_term ();
 
   /* Finish up. */
   shutdown ();

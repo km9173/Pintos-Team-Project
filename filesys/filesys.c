@@ -38,6 +38,7 @@ void
 filesys_done (void)
 {
   // bc_flush_all_entries ();
+  bc_term ();
   free_map_close ();
 }
 
