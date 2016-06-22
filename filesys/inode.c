@@ -400,18 +400,24 @@ locate_byte (off_t pos, struct sector_location *sec_loc)
   if (pos_sector < DIRECT_BLOCK_ENTRIES)
   {
     // sec_loc 자료구조의 변수 값 업데이트
+    sec_loc->directness = NORMAL_DIRECT;
   }
 
   /* Indirect 방식일 경우 */
   else if (pos_sector < (off_t) (DIRECT_BLOCK_ENTRIES + INDIRECT_BLOCK_ENTRIES))
   {
     // sec_loc 자료구조의 변수 값 업데이트 (구현)
+    sec_loc->directness = INDIRECT;
+    sec_loc->index1 = pos_sector - DIRECT_BLOCK_ENTRIES;
   }
 
   /* Double Indirect 방식일 경우 */
   else if (pos_sector < (off_t) (DIRECT_BLOCK_ENTRIES + INDIRECT_BLOCK_ENTRIES * (INDIRECT_BLOCK_ENTRIES + 1)))
   {
     // sec_loc 자료구조의 변수 값 업데이트 (구현)
+    sec_loc->directness = DOUBLE_INDIRECT;
+    sec_loc->index1 = (pos_sector - DIRECT_BLOCK_ENTRIES - INDIRECT_BLOCK_ENTRIES) / INDIRECT_BLOCK_ENTRIES;
+    sec_loc->index2 = (pos_sector - DIRECT_BLOCK_ENTRIES - INDIRECT_BLOCK_ENTRIES) % INDIRECT_BLOCK_ENTRIES;
   }
 
   else
