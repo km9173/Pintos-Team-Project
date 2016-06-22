@@ -489,6 +489,7 @@ byte_to_sector (const struct inode_disk *inode_disk, off_t pos)
     {
       case NORMAL_DIRECT:
         /* on-disk inode의 direct_map_table에서 디스크 블록 번호를 얻음 */
+        result_sec = inode_disk->direct_map_table[sec_loc.index1];
         break;
 
       case INDIRECT:
@@ -496,8 +497,10 @@ byte_to_sector (const struct inode_disk *inode_disk, off_t pos)
 
         if (ind_block)
         {
-          /* buffer cache에서인덱스블록을읽어옴*/
-          /* 인덱스블록에서디스크블록번호확인*/
+          /* buffer cache에서 인덱스 블록을 읽어옴 */
+          /* 인덱스 블록에서 디스크 블록 번호 확인 */
+          bc_read (inode_disk->indirect_block_sec, (void *)ind_block, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
+          result_sec = ind_block->map_table[sec_loc.index1];
         }
         else
           result_sec = 0;
@@ -512,7 +515,12 @@ byte_to_sector (const struct inode_disk *inode_disk, off_t pos)
           /* 1차인덱스블록을buffer cache에서읽음*/
           /* 2차인덱스블록을buffer cache에서읽음*/
           /* 2차인덱스블록에서디스크블록번호확인*/
+          bc_read (inode_disk->double_indirect_block_sec, (void *)ind_block, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
+          bc_read (ind_block->map_table[sec_loc.index1], (void *)ind_block, map_table_offset (sec_loc.index2), 4, map_table_offset (sec_loc.index2));
+          result_sec = ind_block->map_table[sec_loc.index2];
         }
+
+        free (ind_block);
         break;
     }
   }
