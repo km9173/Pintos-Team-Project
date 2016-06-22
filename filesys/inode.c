@@ -199,6 +199,8 @@ inode_close (struct inode *inode)
   if (inode == NULL)
     return;
 
+  struct inode_disk *disk_inode;
+
   /* Release resources if this was the last opener. */
   if (--inode->open_cnt == 0)
     {
@@ -211,9 +213,16 @@ inode_close (struct inode *inode)
       /* Deallocate blocks if removed. */
       if (inode->removed)
         {
+          // free_map_release (inode->sector, 1);
+          // free_map_release (inode->data.start,
+          //                   bytes_to_sectors (inode->data.length));
+          disk_inode = (struct inode_disk *)malloc(BLOCK_SECTOR_SIZE);
+          if (disk_inode == NULL)
+            return ;
+          get_disk_inode (inode, disk_inode);
+          free_inode_sectors (disk_inode);
           free_map_release (inode->sector, 1);
-          free_map_release (inode->data.start,
-                            bytes_to_sectors (inode->data.length));
+          free (disk_inode);
         }
 
       free (inode);
