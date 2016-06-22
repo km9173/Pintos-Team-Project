@@ -247,11 +247,19 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
   uint8_t *buffer = buffer_;
   off_t bytes_read = 0;
   uint8_t *bounce = NULL;
+  struct inode_disk *disk_inode;
+
+  disk_inode = (struct inode_disk *)malloc(BLOCK_SECTOR_SIZE);
+
+  if (disk_inode == NULL)
+    return 0;
+
+  get_disk_inode (inode, disk_inode);
 
   while (size > 0)
     {
       /* Disk sector to read, starting byte offset within sector. */
-      block_sector_t sector_idx = byte_to_sector (inode, offset);
+      block_sector_t sector_idx = byte_to_sector (disk_inode, offset);
       int sector_ofs = offset % BLOCK_SECTOR_SIZE;
 
       /* Bytes left in inode, bytes left in sector, lesser of the two. */
