@@ -401,6 +401,7 @@ locate_byte (off_t pos, struct sector_location *sec_loc)
   {
     // sec_loc 자료구조의 변수 값 업데이트
     sec_loc->directness = NORMAL_DIRECT;
+    sec_loc->index1 = pos_sector;
   }
 
   /* Indirect 방식일 경우 */
