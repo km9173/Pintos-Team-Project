@@ -587,44 +587,65 @@ static void
 free_inode_sectors (struct inode_disk *inode_disk)
 {
   int i = 0;
+  struct inode_indirect_block *ind_block_1;
+  struct inode_indirect_block *ind_block_2;
+  struct inode_indirect_block *ind_bloc;
+  ind_block_1 = (struct inode_indirect_block *)malloc(BLOCK_SECTOR_SIZE);
+  ind_block_2 = (struct inode_indirect_block *)malloc(BLOCK_SECTOR_SIZE);
+
   /* Double indirect 방식으로할당된블록해지 */
   if (inode_disk->double_indirect_block_sec > 0)
   {
-    /* 1차인덱스블록을buffer cache에서읽음*/
+    /* 1차 인덱스 블록을 buffer cache에서 읽음 */
+    bc_read (inode_disk->double_indirect_block_sec, (void *)ind_block_1, 0, BLOCK_SECTOR_SIZE, 0);
     i = 0;
     /* 1차 인덱스 블록을 통해 2차 인덱스 블록을 차례로 접근 */
     while (ind_block_1->map_table[i] > 0)
     {
       /* 2차인덱스블록을buffer cache에서읽음*/
+      bc_read (ind_block_1->map_table[i], (void *)ind_block_2, 0, BLOCK_SECTOR_SIZE, 0);
       j = 0;
       /* 2차인덱스블록에저장된디스크블록번호를접근*/
       while (ind_block_2->map_table[j] > 0)
       {
-        /* free_map업데이틀통해디스크블록할당해지*/
+        /* free_map 업데이틀 통해 디스크 블록 할당 해지 */
+        free_map_release (ind_block_2->map_table[j], 1);
         j++;
       }
       /* 2차인덱스블록할당해지*/
+      free_map_release (ind_block_1->map_table[i], 1);
       i++;
     }
     /* 1차인덱스블록할당해지*/
+    free_map_release(inode_disk->double_indirect_block_sec, 1);
   }
+  free (ind_block_1);
+  free (ind_block_2);
 
+  ind_bloc = (struct inode_indirect_block *)malloc(BLOCK_SECTOR_SIZE);
   /* Indirect 방식으로할당된디스크블록해지*/
   if (inode_disk->indirect_block_sec > 0)
   {
-    /* 인덱스블록을buffer cache에서읽음*/
-    /* 인덱스블록에저장된디스크블록번호를접근*/
+    /* 인덱스 블록을 buffer cache에서 읽음 */
+    bc_read (inode_disk->indirect_block_sec, (void *)ind_bloc, 0, BLOCK_SECTOR_SIZE, 0);
+    i = 0;
+    /* 인덱스 블록에 저장된 디스크 블록 번호를 접근 */
     while (ind_bloc->map_table[i] > 0)
     {
-      /* free_map업데이트를통해디스크블록할당해지 */
+      /* free_map 업데이트를 통해 디스크 블록 할당 해지 */
+      free_map_release(ind_bloc->map_table[i], 1);
       i++;
     }
+    free_map_release(inode_disk->indirect_block_sec, 1);
   }
+  free (ind_bloc);
 
-  /* Direct 방식으로할당된디스크블록해지*/
+  i = 0;
+  /* Direct 방식으로 할당된 디스크 블록 해지 */
   while (inode_disk->direct_map_table[i] > 0)
   {
-    /* free_map업데이트를통해디스크블록할당해지*/
+    /* free_map 업데이트를 통해 디스크 블록 할당 해지 */
+    free_map_release (inode_disk->direct_map_table[i], 1);
     i++;
   }
 }
