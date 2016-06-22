@@ -21,19 +21,19 @@ enum direct_t
   INDIRECT,         // 1개의 인덱스 블록을 통해 디스크 블록 번호에 접근
   DOUBLE_INDIRECT,  // 2개의 인덱스 블록을 통해 디스크 블록 번호에 접근
   OUT_LIMIT         // 잘못된 파일 오프셋 값일 경우
-}
+};
 
 struct sector_location
 {
   direct_t directness;  // 디스크 블록 접근 방법(Direct, Indirect, or Double indirect)
   off_t index1;         // 첫 번째 index block에서 접근할 entry의 offset
   off_t index2;         // 두 번째 index block에서 접근할 entry의 offset
-}
+};
 
 struct inode_indirect_block
 {
   block_sector_t map_table[INDIRECT_BLOCK_ENTRIES];
-}
+};
 
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
@@ -387,7 +387,9 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
       offset += chunk_size;
       bytes_written += chunk_size;
     }
-  free (bounce);
+
+  bc_write (inode->sector, (void *)disk_inode, 0, BLOCK_SECTOR_SIZE, 0);
+  // free (bounce);
 
   return bytes_written;
 }
