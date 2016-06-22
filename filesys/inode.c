@@ -428,6 +428,7 @@ static inline off_t
 map_table_offset (int index)
 {
   /* byte 단위로 변환한 오프셋 값 return */
+  return index * 4;
 }
 
 static bool
