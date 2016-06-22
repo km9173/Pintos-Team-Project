@@ -25,7 +25,7 @@ enum direct_t
 
 struct sector_location
 {
-  direct_t directness;  // 디스크 블록 접근 방법(Direct, Indirect, or Double indirect)
+  enum direct_t directness;  // 디스크 블록 접근 방법(Direct, Indirect, or Double indirect)
   off_t index1;         // 첫 번째 index block에서 접근할 entry의 offset
   off_t index2;         // 두 번째 index block에서 접근할 entry의 offset
 };
@@ -83,6 +83,14 @@ struct inode
 /* List of open inodes, so that opening a single inode twice
    returns the same `struct inode'. */
 static struct list open_inodes;
+
+static block_sector_t byte_to_sector (const struct inode_disk *inode_disk, off_t pos);
+static bool get_disk_inode (const struct inode *inode, struct inode_disk *inode_disk);
+static void locate_byte (off_t pos, struct sector_location *sec_loc);
+static inline off_t map_table_offset (int index);
+static bool register_sector (struct inode_disk *inode_disk, block_sector_t new_sector, struct sector_location sec_loc);
+static void free_inode_sectors (struct inode_disk *inode_disk);
+bool inode_update_file_length (struct inode_disk* inode_disk, off_t start_pos, off_t end_pos);
 
 /* Initializes the inode module. */
 void
@@ -327,7 +335,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
   get_disk_inode (inode, disk_inode);
 
-  lock_acquire (&disk_inode->extended_lock);
+  lock_acquire (&inode->extended_lock);
   int old_length = disk_inode->length;
   int write_end = offset + size - 1;
 
@@ -335,7 +343,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   {
     inode_update_file_length (disk_inode, old_length, write_end);
   }
-  lock_release (&disk_inode->extended_lock);
+  lock_release (&inode->extended_lock);
 
   while (size > 0)
     {
@@ -418,7 +426,13 @@ inode_allow_write (struct inode *inode)
 off_t
 inode_length (const struct inode *inode)
 {
-  return inode->data.length;
+  struct inode_disk *disk_inode = (struct inode_disk *)malloc(BLOCK_SECTOR_SIZE);
+  if (disk_inode == NULL)
+    return -1;
+  get_disk_inode (inode, disk_inode);
+  off_t length = disk_inode->length;
+  free (disk_inode);
+  return length;
 }
 
 static bool
@@ -429,7 +443,6 @@ get_disk_inode (const struct inode *inode, struct inode_disk *inode_disk)
     읽어 inode_disk에 저장 (bc_read() 함수 사용)
   */
   /* true 반환 */
-
   return bc_read (inode->sector, (void *)inode_disk, 0, BLOCK_SECTOR_SIZE, 0);
 }
 
@@ -503,7 +516,7 @@ register_sector (struct inode_disk *inode_disk, block_sector_t new_sector, struc
         return false;
       /* 2차 인덱스 블록에 새로 할당 받은 블록 주소 저장 후,
          각 인덱스 블록을 buffer cache에 기록 */
-      new_block->map_table[sec_loc.index1] = sec_loc.index2
+      new_block->map_table[sec_loc.index1] = sec_loc.index2;
       bc_write (inode_disk->double_indirect_block_sec, (void *)new_block, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
       new_block->map_table[sec_loc.index2] = new_sector;
       bc_write (sec_loc.index1, (void *)new_block, map_table_offset (sec_loc.index2), 4, map_table_offset (sec_loc.index2));
@@ -576,15 +589,16 @@ inode_update_file_length (struct inode_disk* inode_disk, off_t start_pos, off_t 
   off_t size = end_pos - start_pos;
   off_t offset = start_pos;
 
-  void *zeros;
-  zeros = malloc (BLOCK_SECTOR_SIZE);
-  memset (zeros, 0, BLOCK_SECTOR_SIZE);
+  void *zeroes;
+  zeroes = malloc (BLOCK_SECTOR_SIZE);
+  memset (zeroes, 0, BLOCK_SECTOR_SIZE);
 
   /* 블록 단위로 loop을 수행하며 새로운 디스크 블록 할당 */
   while (size > 0)
   {
     /* 디스크 블록 내 오프셋 계산 */
     int sector_ofs = offset % BLOCK_SECTOR_SIZE;
+    int chunk_size = 0;
     if (sector_ofs > 0)
     {
       /* 블록 오프셋이 0 보다 클 경우, 이미 할당된 블록 */
@@ -628,7 +642,7 @@ inode_update_file_length (struct inode_disk* inode_disk, off_t start_pos, off_t 
 static void
 free_inode_sectors (struct inode_disk *inode_disk)
 {
-  int i = 0;
+  int i = 0, j = 0;
   struct inode_indirect_block *ind_block_1;
   struct inode_indirect_block *ind_block_2;
   struct inode_indirect_block *ind_bloc;
