@@ -111,23 +111,27 @@ inode_create (block_sector_t sector, off_t length)
   disk_inode = calloc (1, sizeof *disk_inode);
   if (disk_inode != NULL)
     {
-      size_t sectors = bytes_to_sectors (length);
+      // size_t sectors = bytes_to_sectors (length);
       disk_inode->length = length;
       disk_inode->magic = INODE_MAGIC;
-      if (free_map_allocate (sectors, &disk_inode->start))
-        {
-          block_write (fs_device, sector, disk_inode);
-          if (sectors > 0)
-            {
-              static char zeros[BLOCK_SECTOR_SIZE];
-              size_t i;
-
-              for (i = 0; i < sectors; i++)
-                block_write (fs_device, disk_inode->start + i, zeros);
-            }
-          success = true;
-        }
+      // if (free_map_allocate (sectors, &disk_inode->start))
+      //   {
+      //     block_write (fs_device, sector, disk_inode);
+      //     if (sectors > 0)
+      //       {
+      //         static char zeros[BLOCK_SECTOR_SIZE];
+      //         size_t i;
+      //
+      //         for (i = 0; i < sectors; i++)
+      //           block_write (fs_device, disk_inode->start + i, zeros);
+      //       }
+      //     success = true;
+      //   }
+      if (length > 0)
+        inode_update_file_length (disk_inode, 0, length);
+      bc_write (sector, (void *)disk_inode, 0, BLOCK_SECTOR_SIZE, 0); // TODO...
       free (disk_inode);
+      success = true;
     }
   return success;
 }
