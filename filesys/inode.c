@@ -531,6 +531,13 @@ byte_to_sector (const struct inode_disk *inode_disk, off_t pos)
 bool
 inode_update_file_length (struct inode_disk* inode_disk, off_t start_pos, off_t end_pos)
 {
+  off_t size = end_pos - start_pos;
+  off_t offset = start_pos;
+
+  void *zeros;
+  zeros = malloc (BLOCK_SECTOR_SIZE);
+  memset (zeros, 0, BLOCK_SECTOR_SIZE);
+
   /* 블록 단위로 loop을 수행하며 새로운 디스크 블록 할당 */
   while (size > 0)
   {
@@ -539,14 +546,26 @@ inode_update_file_length (struct inode_disk* inode_disk, off_t start_pos, off_t 
     if (sector_ofs > 0)
     {
       /* 블록 오프셋이 0 보다 클 경우, 이미 할당된 블록 */
+      /* Bytes left in inode, bytes left in sector, lesser of the two. */
+      // off_t inode_left = inode_disk.length - offset;
+      int sector_left = BLOCK_SECTOR_SIZE - sector_ofs;
+      // int min_left = inode_left < sector_left ? inode_left : sector_left;
+
+      /* Number of bytes to actually copy out of this sector. */
+      // int chunk_size = size < min_left ? size : min_left;
+      chunk_size = sector_left;
     }
 
     else
     {
+      block_sector_t sector_idx;
+      struct sector_location sec_loc;
       /* 새로운 디스크 블록을 할당 */
       if (free_map_allocate (1, &sector_idx))
       {
         /* inode_disk에 새로 할당 받은 디스크 블록 번호 업데이트 */
+        locate_byte (offset, &sec_loc);
+        register_sector (inode_disk, sector_idx, sec_loc);
       }
       else
       {
