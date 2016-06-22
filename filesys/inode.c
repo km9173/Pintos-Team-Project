@@ -435,9 +435,12 @@ map_table_offset (int index)
 static bool
 register_sector (struct inode_disk *inode_disk, block_sector_t new_sector, struct sector_location sec_loc)
 {
+  struct inode_indirect_block* new_block;
+
   switch (sec_loc.directness) {
     case NORMAL_DIRECT:
       /* inode_disk에 새로 할당받은 디스크 번호 업데이트 */
+      inode_disk->direct_map_table[sec_loc.index1] = new_sector;
       break;
 
     case INDIRECT:
@@ -446,6 +449,10 @@ register_sector (struct inode_disk *inode_disk, block_sector_t new_sector, struc
         return false;
       /* 인덱스 블록에 새로 할당 받은 블록 번호 저장 */
       /* 인덱스 블록을 buffer cache에 기록 */
+      // bc_read (block_sector_t sector_idx, void *buffer, off_t bytes_read, int chunk_size, int sector_ofs)
+      // bc_read (inode_disk->indirect_block_sec, (void *)new_block, 0, BLOCK_SECTOR_SIZE, 0);
+      new_block->map_table[sec_loc.index1] = new_sector;
+      bc_write (inode_disk->indirect_block_sec, (void *)new_block, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
       break;
 
     case DOUBLE_INDIRECT:
@@ -454,7 +461,10 @@ register_sector (struct inode_disk *inode_disk, block_sector_t new_sector, struc
         return false;
       /* 2차 인덱스 블록에 새로 할당 받은 블록 주소 저장 후,
          각 인덱스 블록을 buffer cache에 기록 */
-
+      new_block->map_table[sec_loc.index1] = sec_loc.index2
+      bc_write (inode_disk->double_indirect_block_sec, (void *)new_block, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
+      new_block->map_table[sec_loc.index2] = new_sector;
+      bc_write (sec_loc.index1, (void *)new_block, map_table_offset (sec_loc.index2), 4, map_table_offset (sec_loc.index2));
       break;
 
     default:
