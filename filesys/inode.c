@@ -314,15 +314,33 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 {
   const uint8_t *buffer = buffer_;
   off_t bytes_written = 0;
-  uint8_t *bounce = NULL;
+  // uint8_t *bounce = NULL;
 
   if (inode->deny_write_cnt)
     return 0;
 
+  struct inode_disk *disk_inode;
+  disk_inode = (struct inode_disk *)malloc(BLOCK_SECTOR_SIZE);
+
+  if (disk_inode == NULL)
+    return 0;
+
+  get_disk_inode (inode, disk_inode);
+
+  lock_acquire (&disk_inode->extended_lock);
+  int old_length = disk_inode->length;
+  int write_end = offset + size - 1;
+
+  if (write_end > old_length - 1)
+  {
+    inode_update_file_length (disk_inode, old_length, write_end);
+  }
+  lock_release (&disk_inode->extended_lock);
+
   while (size > 0)
     {
       /* Sector to write, starting byte offset within sector. */
-      block_sector_t sector_idx = byte_to_sector (inode, offset);
+      block_sector_t sector_idx = byte_to_sector (disk_inode, offset);
       int sector_ofs = offset % BLOCK_SECTOR_SIZE;
 
       /* Bytes left in inode, bytes left in sector, lesser of the two. */
