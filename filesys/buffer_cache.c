@@ -115,7 +115,7 @@ bc_init (void)
   for (i = 0; i < BUFFER_CACHE_ENTRY_NB; i++) {
     buffer_head_table[i].dirty = false;
     buffer_head_table[i].used = false;
-    buffer_head_table[i].sector = 0;
+    buffer_head_table[i].sector = -1;
     buffer_head_table[i].inode = NULL;
     buffer_head_table[i].data = p_buffer_cache[i];
     lock_init (&buffer_head_table[i].buffer_head_lock);
