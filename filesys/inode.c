@@ -497,7 +497,10 @@ map_table_offset (int index)
 static bool
 register_sector (struct inode_disk *inode_disk, block_sector_t new_sector, struct sector_location sec_loc)
 {
-  struct inode_indirect_block* new_block;
+  struct inode_indirect_block* index_block_f;
+  struct inode_indirect_block* index_block_s;
+  block_sector_t index_block_f_sector;
+  block_sector_t index_block_s_sector;
 
   switch (sec_loc.directness) {
     case NORMAL_DIRECT:
@@ -506,27 +509,51 @@ register_sector (struct inode_disk *inode_disk, block_sector_t new_sector, struc
       break;
 
     case INDIRECT:
-      new_block = malloc (BLOCK_SECTOR_SIZE);
-      if (new_block == NULL)
+      index_block_f = malloc (BLOCK_SECTOR_SIZE);
+      if (index_block_f == NULL)
         return false;
       /* 인덱스 블록에 새로 할당 받은 블록 번호 저장 */
       /* 인덱스 블록을 buffer cache에 기록 */
-      new_block->map_table[sec_loc.index1] = new_sector;
-      bc_write (inode_disk->indirect_block_sec, (void *)new_block, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
-      free (new_block);
+      if (sec_loc.index1 == 0)
+      {
+        free_map_allocate (1, &index_block_f_sector);
+        inode_disk->indirect_block_sec = index_block_f_sector;
+      }
+      bc_read (inode_disk->indirect_block_sec, (void *)index_block_f, 0, BLOCK_SECTOR_SIZE, 0);
+      index_block_f->map_table[sec_loc.index1] = new_sector;
+      bc_write (inode_disk->indirect_block_sec, (void *)index_block_f, 0, BLOCK_SECTOR_SIZE, 0);
+      free (index_block_f);
       break;
 
     case DOUBLE_INDIRECT:
-      new_block = malloc (BLOCK_SECTOR_SIZE);
-      if (new_block == NULL)
+      index_block_f = malloc (BLOCK_SECTOR_SIZE);
+      index_block_s = malloc (BLOCK_SECTOR_SIZE);
+      if (index_block_f == NULL)
         return false;
+
+      if (sec_loc.index1 == 0)
+      {
+        free_map_allocate (1, &index_block_f_sector);
+        inode_disk->double_indirect_block_sec = index_block_f_sector;
+      }
+
+      bc_read (inode_disk->double_indirect_block_sec, (void *)index_block_f, 0, BLOCK_SECTOR_SIZE, 0);
+
+      if (sec_loc.index2 == 0)
+      {
+        free_map_allocate (1, &index_block_s_sector);
+        index_block_f->map_table[sec_loc.index1] = index_block_s_sector;
+        bc_write (inode_disk->double_indirect_block_sec, (void *)index_block_f, 0, BLOCK_SECTOR_SIZE, 0);
+      }
       /* 2차 인덱스 블록에 새로 할당 받은 블록 주소 저장 후,
          각 인덱스 블록을 buffer cache에 기록 */
-      bc_read (inode_disk->double_indirect_block_sec, (void *)new_block, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
-      // bc_read (new_block->map_table[sec_loc.index1], (void *)new_block, map_table_offset (sec_loc.index2), 4, map_table_offset (sec_loc.index2));
-      new_block->map_table[sec_loc.index2] = new_sector;
-      bc_write (new_block->map_table[sec_loc.index1], (void *)new_block, map_table_offset (sec_loc.index2), 4, map_table_offset (sec_loc.index2));
-      free (new_block);
+      bc_read (index_block_f->map_table[sec_loc.index1], (void *)index_block_s, 0, BLOCK_SECTOR_SIZE, 0);
+      index_block_s->map_table[sec_loc.index2] = new_sector;
+      bc_write (index_block_f->map_table[sec_loc.index1], (void *)index_block_s, 0, BLOCK_SECTOR_SIZE, 0);
+      // bc_read (inode_disk->double_indirect_block_sec, (void *)index_block_s_sector, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
+      // bc_write (index_block_s_sector, (void *)new_sector, map_table_offset (sec_loc.index2), 4, map_table_offset (sec_loc.index2));
+      free (index_block_f);
+      free (index_block_s);
       break;
 
     default:
