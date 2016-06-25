@@ -446,7 +446,10 @@ get_disk_inode (const struct inode *inode, struct inode_disk *disk_inode)
     읽어 inode_disk에 저장 (bc_read() 함수 사용)
   */
   /* true 반환 */
-  bool result = bc_read (inode->sector, (void *)disk_inode, 0, BLOCK_SECTOR_SIZE, 0);
+  bool result = false;
+  lock_acquire (&inode->extended_lock);
+  result = bc_read (inode->sector, (void *)disk_inode, 0, BLOCK_SECTOR_SIZE, 0);
+  lock_release (&inode->extended_lock);
   return result;
 }
 
@@ -477,7 +480,7 @@ locate_byte (off_t pos, struct sector_location *sec_loc)
     // sec_loc 자료구조의 변수 값 업데이트 (구현)
     sec_loc->directness = DOUBLE_INDIRECT;
     sec_loc->index1 = (pos_sector - DIRECT_BLOCK_ENTRIES - INDIRECT_BLOCK_ENTRIES) / INDIRECT_BLOCK_ENTRIES;
-    sec_loc->index2 = (pos_sector - DIRECT_BLOCK_ENTRIES - INDIRECT_BLOCK_ENTRIES) % INDIRECT_BLOCK_ENTRIES;
+    sec_loc->index2 = (pos_sector - DIRECT_BLOCK_ENTRIES - INDIRECT_BLOCK_ENTRIES) % INDIRECT_BLOCK_ENTRIES;  // TODO : 맞는지 정확하게 확인필요.
   }
 
   else
@@ -510,6 +513,7 @@ register_sector (struct inode_disk *inode_disk, block_sector_t new_sector, struc
       /* 인덱스 블록을 buffer cache에 기록 */
       new_block->map_table[sec_loc.index1] = new_sector;
       bc_write (inode_disk->indirect_block_sec, (void *)new_block, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
+      free (new_block);
       break;
 
     case DOUBLE_INDIRECT:
@@ -519,15 +523,15 @@ register_sector (struct inode_disk *inode_disk, block_sector_t new_sector, struc
       /* 2차 인덱스 블록에 새로 할당 받은 블록 주소 저장 후,
          각 인덱스 블록을 buffer cache에 기록 */
       bc_read (inode_disk->double_indirect_block_sec, (void *)new_block, map_table_offset (sec_loc.index1), 4, map_table_offset (sec_loc.index1));
-      bc_read (new_block->map_table[sec_loc.index1], (void *)new_block, map_table_offset (sec_loc.index2), 4, map_table_offset (sec_loc.index2));
+      // bc_read (new_block->map_table[sec_loc.index1], (void *)new_block, map_table_offset (sec_loc.index2), 4, map_table_offset (sec_loc.index2));
       new_block->map_table[sec_loc.index2] = new_sector;
       bc_write (new_block->map_table[sec_loc.index1], (void *)new_block, map_table_offset (sec_loc.index2), 4, map_table_offset (sec_loc.index2));
+      free (new_block);
       break;
 
     default:
       return false;
   }
-  free (new_block);
   return true;
 }
 
