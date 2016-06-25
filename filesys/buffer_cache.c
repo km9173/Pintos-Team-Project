@@ -140,7 +140,7 @@ bc_term (void)
       free (buffer_head_table[i].data);
     buffer_head_table[i].dirty = false;
     buffer_head_table[i].used = false;
-    buffer_head_table[i].sector = 0;
+    buffer_head_table[i].sector = -1;
     buffer_head_table[i].inode = NULL;
     buffer_head_table[i].data = NULL;
     buffer_head_table[i].clock_bit = false;
@@ -182,7 +182,7 @@ bc_select_victim (void)
 
   /* victim entry에 해당하는 buffer_head값 update */
   buffer_head_table[i].dirty = false;
-  buffer_head_table[i].sector = 0;
+  buffer_head_table[i].sector = -1;
   buffer_head_table[i].inode = NULL;
   memset (buffer_head_table[i].data, 0, BLOCK_SECTOR_SIZE);
   buffer_head_table[i].clock_bit = false;
