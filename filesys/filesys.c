@@ -118,17 +118,18 @@ filesys_remove (const char *name)
   struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
   struct inode *inode;
 
-  if ((dir != NULL && dir_lookup (dir, file_name, &inode)) {
+  if (dir != NULL && dir_lookup (dir, file_name, &inode)) {
     if (inode_is_dir (inode)) {
-      struct dir *f_dir = dir_open (inode);
-      if (dir_readdir (f_dir, cp_name)) { // cp_name instead of temp_str
+      if (inode_get_inumber (dir_get_inode (dir)) != ROOT_DIR_SECTOR) {
+        struct dir *f_dir = dir_open (inode);
+        if (!dir_readdir (f_dir, cp_name)) // cp_name instead of temp_str
+          success = dir_remove (dir, file_name);
         dir_close (f_dir);
-        inode_close (inode);
-        break;
       }
     }
-    //bool success = dir != NULL && dir_remove (dir, file_name);
-    success = dir_remove (dir, file_name);
+    else
+      success = dir_remove (dir, file_name);
+    inode_close (inode);
   }
 
   dir_close (dir);
