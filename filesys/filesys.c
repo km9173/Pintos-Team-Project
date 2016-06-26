@@ -206,7 +206,7 @@ parse_path (char *path_name, char *file_name)
 bool
 filesys_create_dir (const char *name)
 {
-  block_sector_t sector_idx;
+  block_sector_t sector_idx = 0, f_sector_idx;
   /* name 경로 분석 */
   // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
@@ -220,20 +220,24 @@ filesys_create_dir (const char *name)
 
                   /* 할당받은 sector에 file_name의 디렉터리 생성 */
                   // TODO: 두 번째 인자(length) 충분한 지 확인
-                  && dir_create (sector_idx, 25));
+                  && dir_create (sector_idx, 25)
+
+                  /* 디렉터리 엔트리에 file_name의 엔트리 추가 */
+                  && dir_add (dir, file_name, sector_idx));
 
   if (success) {
+    f_sector_idx = inode_get_inumber (dir_get_inode (dir));
     struct inode *inode = inode_open (sector_idx);
     dir_close (dir);
     dir = dir_open (inode);
-  }
 
-  success      = (success
-                  /* 디렉터리 엔트리에 file_name의 엔트리 추가 */
-                  && dir_add (dir, file_name, sector_idx)
+    success    = (success
                   /* 디렉터리 엔트리에 ‘.’, ‘..’ 파일의 엔트리 추가 */
                   && dir_add (dir, ".", sector_idx)
-                  && dir_add (dir, "..", sector_idx));
+                  && dir_add (dir, "..", f_sector_idx));
+
+    inode_close (inode);
+  }
   if (!success && sector_idx != 0)
     free_map_release (sector_idx, 1);
 
