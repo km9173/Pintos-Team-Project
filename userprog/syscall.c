@@ -347,6 +347,8 @@ write (int fd, void *buffer, unsigned size)
     f = process_get_file (fd);
     if (f == NULL)
       read_size = -1;
+    else if (inode_is_dir (file_get_inode(f)))
+      read_size = -1;
     else
       read_size = file_write (f, buffer, size);
   }
