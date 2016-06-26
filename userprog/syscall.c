@@ -441,21 +441,21 @@ readdir (int fd, char *name)
   int pos = 0;
   /* fd 리스트에서 fd에 대한 file 정보를 얻어옴 */
   struct file *p_file = process_get_file (fd);
+  struct inode *file_inode = file_get_inode (p_file);
 
   /* fd의 file의 inode가 디렉터리인지 검사 */
-  if (!inode_is_dir (file_get_inode (p_file)))
+  if (!inode_is_dir (file_inode))
     return false;
 
   /* p_file을 dir자료구조로 포인팅 */
+  struct dir * cur_dir = dir_open (file_inode);
   /* 디렉터리의 엔트에서 “.”,”..” 이름을 제외한 파일이름을 name에 저장 */
-  // TODO: '\n'을 끝에 넣어주는 게 맞는 건지 모르겠음. 그렇다고 안 넣으면 \0인데?
-  while (dir_readdir ((struct dir *)p_file, file_name)) {
-    if (*file_name != '.')
-      strlcpy (name + pos, file_name, strlen (file_name) + 1);
-    pos += strlen (file_name) + 1;
-    name[pos] = '\n';
-    pos++;
+  if (!dir_readdir (cur_dir, name)) {
+    dir_close (cur_dir);
+    return false;
   }
+  dir_close (cur_dir);
+  return true;
 }
 
 block_sector_t
