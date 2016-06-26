@@ -97,7 +97,7 @@ filesys_open (const char *name)
 
   if (inode_is_dir (inode)) {
     dir_close (thread_current ()->cur_dir);
-    thread_current ()->cur = dir_open (inode);
+    thread_current ()->cur_dir = dir_open (inode);
   }
 
   struct file *file = file_open (inode);
