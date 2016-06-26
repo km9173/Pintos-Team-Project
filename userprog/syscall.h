@@ -24,5 +24,11 @@ int write (int fd, void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+// Subdirectory
+bool isdir (int fd);
+bool chdir (const char *dir);
+bool mkdir (const char *dir);
+bool readdir (int fd, char *name);
+block_sector_t inumber (int fd);
 
 #endif /* userprog/syscall.h */

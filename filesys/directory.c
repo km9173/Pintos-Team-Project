@@ -192,6 +192,10 @@ dir_remove (struct dir *dir, const char *name)
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
 
+  // Subdirectory
+  if (*name == '.')
+    return success;
+
   /* Find directory entry. */
   if (!lookup (dir, name, &e, &ofs))
     goto done;

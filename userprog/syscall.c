@@ -143,25 +143,38 @@ syscall_handler (struct intr_frame *f UNUSED)
       get_argument (f->esp, (int *)arg, 1);
       chec_address((void *)arg[0]);
       fd = *(int *)arg[0];
-      f->eax = sys_isdir (fd);
+      f->eax = isdir (fd);
       break;
 
     case SYS_CHDIR:
       get_argument (f->esp, (int *)arg, 1);
       chec_address((void *)arg[0]);
       file = *(char **)arg[0];
-      f->eax = sys_chdir (dir);
+      f->eax = chdir (dir);
       break;
 
     case SYS_MKDIR:
       get_argument (f->esp, (int *)arg, 1);
       chec_address((void *)arg[0]);
       file = *(char **)arg[0];
-      f->eax = sys_mkdir (dir);
+      f->eax = mkdir (dir);
       break;
 
     case SYS_READDIR:
+      get_argument (f->esp, (int *)arg, 2);
+      chec_address((void *)arg[0]);
+      chec_address((void *)arg[1]);
+      fd = *(int *)arg[0];
+      file = *(char **)arg[1];
+      f->eax = readdir (fd, file);
+      break;
+
     case SYS_INUMBER:
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      fd = *(int *)arg[0];
+      f->eax = inumber (fd);
+      break;
 
     default:
       thread_exit ();
@@ -368,18 +381,18 @@ close (int fd)
 }
 
 bool
-sys_isdir (int fd)
+isdir (int fd)
 {
   return inode_is_dir (process_get_file (fd)->inode);
 }
 
 bool
-sys_chdir (const char *dir)
+chdir (const char *dir)
 {
   // TODO: 이 코드가 맞는지, 잘 동작하는지 확인
   // TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (dir) + 1));
-  char *file_name = malloc (sizeof(char) * (strlen (dir) + 1));
+  char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
   strlcpy (cp_name, dir, strlen (dir));
 
   /* dir 경로를 분석하여 디렉터리를 반환 */
@@ -398,14 +411,16 @@ sys_chdir (const char *dir)
 }
 
 bool
-sys_mkdir (const char *dir)
+mkdir (const char *dir)
 {
   return filesys_create_dir (dir);
 }
 
 bool
-sys_readdir (int fd, char *name)
+readdir (int fd, char *name)
 {
+  char file_name[NAME_MAX + 1];
+  int pos = 0;
   /* fd 리스트에서 fd에 대한 file 정보를 얻어옴 */
   struct file *p_file = process_get_file (fd);
 
@@ -414,7 +429,19 @@ sys_readdir (int fd, char *name)
     return false;
 
   /* p_file을 dir자료구조로 포인팅 */
-
   /* 디렉터리의 엔트에서 “.”,”..” 이름을 제외한 파일이름을 name에 저장 */
+  // TODO: '\n'을 끝에 넣어주는 게 맞는 건지 모르겠음. 그렇다고 안 넣으면 \0인데?
+  while (dir_readdir ((struct dir *)p_file, file_name)) {
+    if (*file_name != '.')
+      strlcpy (name + pos, file_name, strlen (file_name));
+    pos += strlen (file_name) + 1;
+    name[pos] = '\n';
+    pos++;
+  }
+}
 
+block_sector_t
+inumber (int fd)
+{
+  return inode_get_inumber (process_get_file (fd)->inode);
 }

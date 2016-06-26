@@ -55,7 +55,7 @@ filesys_create (const char *name, off_t initial_size)
   block_sector_t inode_sector = 0;
   // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
-  char *file_name = malloc (sizeof(char) * (strlen (name) + 1));
+  char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
   strlcpy (cp_name, name, strlen (name));
   struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
 
@@ -83,7 +83,7 @@ filesys_open (const char *name)
 {
   // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
-  char *file_name = malloc (sizeof(char) * (strlen (name) + 1));
+  char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
   strlcpy (cp_name, name, strlen (name));
   struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
   struct inode *inode = NULL;
@@ -107,7 +107,7 @@ filesys_remove (const char *name)
 {
   // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
-  char *file_name = malloc (sizeof(char) * (strlen (name) + 1));
+  char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
   strlcpy (cp_name, name, strlen (name));
   struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
   if (inode_is_dir (inode) && inode)
@@ -128,6 +128,12 @@ do_format (void)
   free_map_create ();
   if (!dir_create (ROOT_DIR_SECTOR, 16))
     PANIC ("root directory creation failed");
+  // Subdirectory
+  block_sector_t sector_idx;
+  free_map_allocate (1, &sector_idx);
+  dir_add (dir_open_root (), ".", sector_idx);
+  dir_add (dir_open_root (), "..", sector_idx);
+  free_map_release (sector_idx, 1);
   free_map_close ();
   printf ("done.\n");
 }
@@ -187,22 +193,30 @@ filesys_create_dir (const char *name)
 {
   block_sector_t sector_idx;
   /* name 경로 분석 */
+  // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
-  char *file_name = malloc (sizeof(char) * (strlen (name) + 1));
+  char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
   strlcpy (cp_name, name, strlen (name));
   struct dir *dir = parse_path (cp_name, file_name);
 
-  /* bitmap에서 inode sector 번호 할당 */
   bool success = (dir != NULL
+                  /* bitmap에서 inode sector 번호 할당 */
                   && free_map_allocate (1, &sector_idx)
-  /* 할당받은 sector에 file_name의 디렉터리 생성 */
-  // TODO: 두 번째 인자(length) 제대로 되어있는지 확인
+
+                  /* 할당받은 sector에 file_name의 디렉터리 생성 */
+                  // TODO: 두 번째 인자(length) 제대로 되어있는지 확인
                   && inode_create (sector_idx, off_t length, 1)
-  /* 디렉터리 엔트리에 file_name의 엔트리 추가 */
-  /* 디렉터리 엔트리에 ‘.’, ‘..’ 파일의 엔트리 추가 */
+
+                  /* 디렉터리 엔트리에 file_name의 엔트리 추가 */
                   && dir_add (dir, file_name, sector_idx)
+                  /* 디렉터리 엔트리에 ‘.’, ‘..’ 파일의 엔트리 추가 */
                   && dir_add (dir, ".", sector_idx)
                   && dir_add (dir, "..", sector_idx));
-  if (!success && inode_sector != 0)
-    free_map_release (inode_sector, 1);
+  if (!success && sector_idx != 0)
+    free_map_release (sector_idx, 1);
+
+  free (cp_name);
+  free (file_name);
+
+  return success;
 }
