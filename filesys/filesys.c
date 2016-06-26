@@ -7,6 +7,7 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 #include "filesys/buffer_cache.h"
+#include "threads/thread.h"
 
 /* Partition that contains the file system. */
 struct block *fs_device;
@@ -222,7 +223,7 @@ filesys_create_dir (const char *name)
 
                   /* 할당받은 sector에 file_name의 디렉터리 생성 */
                   // TODO: 두 번째 인자(length) 제대로 되어있는지 확인
-                  && inode_create (sector_idx, off_t length, 1)
+                  && inode_create (sector_idx, BLOCK_SECTOR_SIZE, 1)
 
                   /* 디렉터리 엔트리에 file_name의 엔트리 추가 */
                   && dir_add (dir, file_name, sector_idx)

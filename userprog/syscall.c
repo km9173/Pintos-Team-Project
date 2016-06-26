@@ -6,6 +6,7 @@
 #include <devices/shutdown.h>
 #include "devices/input.h"
 #include "filesys/filesys.h"
+#include "filesys/directory.h"
 #include "filesys/inode.h"
 #include "userprog/process.h"
 
@@ -150,14 +151,14 @@ syscall_handler (struct intr_frame *f UNUSED)
       get_argument (f->esp, (int *)arg, 1);
       chec_address((void *)arg[0]);
       file = *(char **)arg[0];
-      f->eax = chdir (dir);
+      f->eax = chdir (file);
       break;
 
     case SYS_MKDIR:
       get_argument (f->esp, (int *)arg, 1);
       chec_address((void *)arg[0]);
       file = *(char **)arg[0];
-      f->eax = mkdir (dir);
+      f->eax = mkdir (file);
       break;
 
     case SYS_READDIR:
@@ -396,16 +397,16 @@ chdir (const char *dir)
   strlcpy (cp_name, dir, strlen (dir));
 
   /* dir 경로를 분석하여 디렉터리를 반환 */
-  struct dir *dir = parse_path (cp_name, file_name);
+  struct dir *f_dir = parse_path (cp_name, file_name);
 
   free (cp_name);
   free (file_name);
 
-  if (dir == NULL)
+  if (f_dir == NULL)
     return false;
   else {
     /* 스레드의 현재 작업 디렉터리를 변경 */
-    thread_current ()->cur_dir = dir;
+    thread_current ()->cur_dir = f_dir;
     return true;
   }
 }

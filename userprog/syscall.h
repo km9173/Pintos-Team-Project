@@ -2,6 +2,7 @@
 #define USERPROG_SYSCALL_H
 
 #include "threads/synch.h"
+#include "devices/block.h"
 
 typedef int pid_t;
 
