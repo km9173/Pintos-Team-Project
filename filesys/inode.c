@@ -270,6 +270,9 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
 
   get_disk_inode (inode, disk_inode);
 
+  if (offset >= disk_inode->length)
+    return 0;
+
   while (size > 0)
     {
       /* Disk sector to read, starting byte offset within sector. */

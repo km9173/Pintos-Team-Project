@@ -222,7 +222,7 @@ filesys_create_dir (const char *name)
 
                   /* 할당받은 sector에 file_name의 디렉터리 생성 */
                   // TODO: 두 번째 인자(length) 충분한 지 확인
-                  && dir_create (sector_idx, 25)
+                  && dir_create (sector_idx, 0)
 
                   /* 디렉터리 엔트리에 file_name의 엔트리 추가 */
                   && dir_add (dir, file_name, sector_idx));
