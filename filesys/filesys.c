@@ -95,12 +95,15 @@ filesys_open (const char *name)
   free (cp_name);
   free (file_name);
 
-  if (inode_is_dir (inode)) {
-    dir_close (thread_current ()->cur_dir);
-    thread_current ()->cur_dir = dir_open (inode);
+  if (inode_get_inumber (dir_get_inode (dir)) == ROOT_DIR_SECTOR && inode == NULL) {
+    //   || inode_is_dir (inode)) {
+    // dir_close (thread_current ()->cur_dir);
+    // thread_current ()->cur_dir = dir_open (inode);
+    // if (inode == NULL)
+      return file_open (dir_get_inode (dir));
   }
 
-  struct file *file = file_open (inode);
+  return file_open (inode);
 }
 
 /* Deletes the file named NAME.
@@ -168,7 +171,7 @@ parse_path (char *path_name, char *file_name)
     return NULL;
 
   /* PATH_NAME의 절대/상대경로에 따른 디렉터리 정보 저장 (구현)*/
-  if (path_name[0] == '/')
+  if (path_name[0] == '/' || thread_current ()->cur_dir == NULL)
     dir = dir_open_root ();
   else
     dir = dir_reopen (thread_current ()->cur_dir);
@@ -199,7 +202,8 @@ parse_path (char *path_name, char *file_name)
     inode_close (inode);
   }
   /* token의 파일 이름을 file_name에 저장 */
-  strlcpy (file_name, token, strlen (token) + 1);
+  if (token != NULL)
+    strlcpy (file_name, token, strlen (token) + 1);
 
   /* dir 정보 반환 */
   return dir;
