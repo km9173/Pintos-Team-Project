@@ -383,7 +383,7 @@ close (int fd)
 bool
 isdir (int fd)
 {
-  return inode_is_dir (process_get_file (fd)->inode);
+  return inode_is_dir (file_get_inode (process_get_file (fd)));
 }
 
 bool
@@ -424,8 +424,8 @@ readdir (int fd, char *name)
   /* fd 리스트에서 fd에 대한 file 정보를 얻어옴 */
   struct file *p_file = process_get_file (fd);
 
-  /* fd의 file->inode가 디렉터리인지 검사 */
-  if (!inode_is_dir (p_file->inode))
+  /* fd의 file의 inode가 디렉터리인지 검사 */
+  if (!inode_is_dir (file_get_inode (p_file)))
     return false;
 
   /* p_file을 dir자료구조로 포인팅 */
@@ -443,5 +443,5 @@ readdir (int fd, char *name)
 block_sector_t
 inumber (int fd)
 {
-  return inode_get_inumber (process_get_file (fd)->inode);
+  return inode_get_inumber (file_get_inode (process_get_file (fd)));
 }

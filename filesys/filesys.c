@@ -105,13 +105,30 @@ filesys_open (const char *name)
 bool
 filesys_remove (const char *name)
 {
+  bool success = false;
   // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
   char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
   strlcpy (cp_name, name, strlen (name));
   struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
-  if (inode_is_dir (inode) && inode)
-  bool success = dir != NULL && dir_remove (dir, file_name);
+  struct inode *inode;
+
+  if (dir == NULL || !dir_lookup (dir, file_name, &inode))
+    goto done;
+
+  if (inode_is_dir (inode)) {
+    struct dir *f_dir = dir_open (inode);
+    if (dir_readdir (f_dir, cp_name)) { // cp_name instead of temp_str
+      inode_close (inode);
+      dir_close (f_dir);
+      goto done;
+    }
+  }
+
+  //bool success = dir != NULL && dir_remove (dir, file_name);
+  success = dir_remove (dir, file_name);
+
+ done:
   dir_close (dir);
 
   free (cp_name);
