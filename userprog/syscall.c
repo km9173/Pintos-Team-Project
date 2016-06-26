@@ -402,8 +402,18 @@ chdir (const char *dir)
   struct dir *f_dir = parse_path (cp_name, file_name);
   struct inode *inode;
 
-  if (!dir_lookup (f_dir, file_name, &inode))
+  // root 예외처리
+  if (!dir_lookup (f_dir, file_name, &inode)) {
+    if (inode_get_inumber (dir_get_inode (f_dir)) == ROOT_DIR_SECTOR && inode == NULL) {
+      free (cp_name);
+      free (file_name);
+      dir_close (thread_current ()->cur_dir);
+      thread_current ()->cur_dir = f_dir;
+      return true;
+    }
+   else
     return false;
+  }
 
   /* inode가 파일일 경우 NULL 반환 */
   if (!inode_is_dir (inode))
