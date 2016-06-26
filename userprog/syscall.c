@@ -398,6 +398,20 @@ chdir (const char *dir)
 
   /* dir 경로를 분석하여 디렉터리를 반환 */
   struct dir *f_dir = parse_path (cp_name, file_name);
+  struct inode *inode;
+
+  if (!dir_lookup (f_dir, file_name, &inode))
+    return false;
+
+  /* inode가 파일일 경우 NULL 반환 */
+  if (!inode_is_dir (inode))
+    return false;
+
+  /* dir의 디렉터리 정보를 메모리에서 해지 */
+  dir_close (f_dir);
+
+  /* inode의 디렉터리 정보를 dir에 저장 */
+  f_dir = dir_open (inode);
 
   free (cp_name);
   free (file_name);
