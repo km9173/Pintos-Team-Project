@@ -91,12 +91,16 @@ filesys_open (const char *name)
 
   if (dir != NULL)
     dir_lookup (dir, file_name, &inode);
-  dir_close (dir);
 
   free (cp_name);
   free (file_name);
 
-  return file_open (inode);
+  if (inode_is_dir (inode)) {
+    dir_close (thread_current ()->cur_dir);
+    thread_current ()->cur = dir_open (inode);
+  }
+
+  struct file *file = file_open (inode);
 }
 
 /* Deletes the file named NAME.
