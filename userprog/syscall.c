@@ -394,7 +394,7 @@ chdir (const char *dir)
   // TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (dir) + 1));
   char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
-  strlcpy (cp_name, dir, strlen (dir));
+  strlcpy (cp_name, dir, strlen (dir) + 1);
 
   /* dir 경로를 분석하여 디렉터리를 반환 */
   struct dir *f_dir = parse_path (cp_name, file_name);
@@ -434,7 +434,7 @@ readdir (int fd, char *name)
   // TODO: '\n'을 끝에 넣어주는 게 맞는 건지 모르겠음. 그렇다고 안 넣으면 \0인데?
   while (dir_readdir ((struct dir *)p_file, file_name)) {
     if (*file_name != '.')
-      strlcpy (name + pos, file_name, strlen (file_name));
+      strlcpy (name + pos, file_name, strlen (file_name) + 1);
     pos += strlen (file_name) + 1;
     name[pos] = '\n';
     pos++;

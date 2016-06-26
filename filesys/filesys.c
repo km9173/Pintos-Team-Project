@@ -57,7 +57,7 @@ filesys_create (const char *name, off_t initial_size)
   // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
   char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
-  strlcpy (cp_name, name, strlen (name));
+  strlcpy (cp_name, name, strlen (name) + 1);
   struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
 
   bool success = (dir != NULL
@@ -85,7 +85,7 @@ filesys_open (const char *name)
   // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
   char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
-  strlcpy (cp_name, name, strlen (name));
+  strlcpy (cp_name, name, strlen (name) + 1);
   struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
   struct inode *inode = NULL;
 
@@ -110,7 +110,7 @@ filesys_remove (const char *name)
   // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
   char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
-  strlcpy (cp_name, name, strlen (name));
+  strlcpy (cp_name, name, strlen (name) + 1);
   struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
   struct inode *inode;
 
@@ -200,7 +200,7 @@ parse_path (char *path_name, char *file_name)
     inode_close (inode);
   }
   /* token의 파일 이름을 file_name에 저장 */
-  strlcpy (file_name, token, strlen (token));
+  strlcpy (file_name, token, strlen (token) + 1);
 
   /* dir 정보 반환 */
   return dir;
@@ -214,7 +214,7 @@ filesys_create_dir (const char *name)
   // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
   char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
   char *file_name = malloc (sizeof(char) * (NAME_MAX + 1));
-  strlcpy (cp_name, name, strlen (name));
+  strlcpy (cp_name, name, strlen (name) + 1);
   struct dir *dir = parse_path (cp_name, file_name);
 
   bool success = (dir != NULL
