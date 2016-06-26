@@ -12,7 +12,8 @@
 #define INODE_MAGIC 0x494e4f44
 
 /* 16 Extensible File */
-#define DIRECT_BLOCK_ENTRIES 124
+//#define DIRECT_BLOCK_ENTRIES 124
+#define DIRECT_BLOCK_ENTRIES 123    // Subdirectory
 #define INDIRECT_BLOCK_ENTRIES 128
 
 enum direct_t
@@ -42,6 +43,7 @@ struct inode_disk
   {
     off_t length;                       /* File size in bytes. */
     unsigned magic;                     /* Magic number. */
+    uint32_t is_dir;                    /* Subdirectory */
     block_sector_t direct_map_table[DIRECT_BLOCK_ENTRIES];
     block_sector_t indirect_block_sec;
     block_sector_t double_indirect_block_sec;
@@ -105,7 +107,7 @@ inode_init (void)
    Returns true if successful.
    Returns false if memory or disk allocation fails. */
 bool
-inode_create (block_sector_t sector, off_t length)
+inode_create (block_sector_t sector, off_t length, uint32_t is_dir)
 {
   struct inode_disk *disk_inode = NULL;
   bool success = false;
@@ -122,6 +124,10 @@ inode_create (block_sector_t sector, off_t length)
       // size_t sectors = bytes_to_sectors (length);
       disk_inode->length = length;
       disk_inode->magic = INODE_MAGIC;
+
+      //  Subdirectory
+      disk_inode->is_dir = is_dir;
+
       // if (free_map_allocate (sectors, &disk_inode->start))
       //   {
       //     block_write (fs_device, sector, disk_inode);
@@ -698,4 +704,25 @@ free_inode_sectors (struct inode_disk *inode_disk)
     free_map_release (inode_disk->direct_map_table[i], 1);
     i++;
   }
+}
+
+// Subdirectory
+bool inode_is_dir (const struct inode *inode) {
+  bool result = false;
+  struct inode_disk *disk_inode;
+
+  if (inode == NULL)
+    return result;
+
+  /* inode_disk 자료구조를 메모리에 할당 */
+  disk_inode = calloc (1, sizeof *disk_inode);
+
+  /* in-memory inode의 on-disk inode를 읽어 inode_disk에 저장 */
+  result = get_disk_inode (inode, disk_inode);
+
+  /* on-disk inode의 is_dir을 result에 저장하여 반환 */
+  result = result && disk_inode->is_dir;
+
+  free (disk_inode);
+  return result;
 }

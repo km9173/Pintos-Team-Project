@@ -226,6 +226,9 @@ process_exit (void)
     file_allow_write (thread_current ()->run_file);
   }
 
+  // Subdirectory
+  dir_close (cur->cur_dir);
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;

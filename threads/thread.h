@@ -121,6 +121,9 @@ struct thread
     // Running File: Denying write to executable
     struct file *run_file;
 
+    // Subdirectory
+    struct dir *cur_dir;
+
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 

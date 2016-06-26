@@ -30,6 +30,9 @@ filesys_init (bool format)
     do_format ();
 
   free_map_open ();
+
+  // Subdirectory
+  thread_current ()->cur_dir = dir_open_root ();
 }
 
 /* Shuts down the file system module, writing any unwritten data
@@ -50,14 +53,22 @@ bool
 filesys_create (const char *name, off_t initial_size)
 {
   block_sector_t inode_sector = 0;
-  struct dir *dir = dir_open_root ();
+  // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
+  char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
+  char *file_name = malloc (sizeof(char) * (strlen (name) + 1));
+  strlcpy (cp_name, name, strlen (name));
+  struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
+
   bool success = (dir != NULL
                   && free_map_allocate (1, &inode_sector)
-                  && inode_create (inode_sector, initial_size)
-                  && dir_add (dir, name, inode_sector));
+                  && inode_create (inode_sector, initial_size, 0)
+                  && dir_add (dir, file_name, inode_sector));
   if (!success && inode_sector != 0)
     free_map_release (inode_sector, 1);
   dir_close (dir);
+
+  free (cp_name);
+  free (file_name);
 
   return success;
 }
@@ -70,12 +81,19 @@ filesys_create (const char *name, off_t initial_size)
 struct file *
 filesys_open (const char *name)
 {
-  struct dir *dir = dir_open_root ();
+  // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
+  char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
+  char *file_name = malloc (sizeof(char) * (strlen (name) + 1));
+  strlcpy (cp_name, name, strlen (name));
+  struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
   struct inode *inode = NULL;
 
   if (dir != NULL)
-    dir_lookup (dir, name, &inode);
+    dir_lookup (dir, file_name, &inode);
   dir_close (dir);
+
+  free (cp_name);
+  free (file_name);
 
   return file_open (inode);
 }
@@ -87,9 +105,17 @@ filesys_open (const char *name)
 bool
 filesys_remove (const char *name)
 {
-  struct dir *dir = dir_open_root ();
-  bool success = dir != NULL && dir_remove (dir, name);
+  // Subdirectory TODO: malloc-free 대신 다른 방법 없을지 고민
+  char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
+  char *file_name = malloc (sizeof(char) * (strlen (name) + 1));
+  strlcpy (cp_name, name, strlen (name));
+  struct dir *dir = parse_path (cp_name, file_name); //dir_open_root ();
+  if (inode_is_dir (inode) && inode)
+  bool success = dir != NULL && dir_remove (dir, file_name);
   dir_close (dir);
+
+  free (cp_name);
+  free (file_name);
 
   return success;
 }
@@ -104,4 +130,79 @@ do_format (void)
     PANIC ("root directory creation failed");
   free_map_close ();
   printf ("done.\n");
+}
+
+// Subdirectory
+struct dir*
+parse_path (char *path_name, char *file_name)
+{
+  struct dir *dir;
+
+  if (path_name == NULL || file_name == NULL)
+    PANIC ("parse_path failed\n");
+
+  if (strlen (path_name) == 0)
+    return NULL;
+
+  /* PATH_NAME의 절대/상대경로에 따른 디렉터리 정보 저장 (구현)*/
+  if (*path_name == '/')
+    dir = dir_open_root ();
+  else
+    dir = thread_current ()->cur_dir;
+
+  char *token, *nextToken, *savePtr;
+  token = strtok_r (path_name, "/", &savePtr);
+  nextToken = strtok_r (NULL, "/", &savePtr);
+  while (token != NULL && nextToken != NULL) {
+    struct inode *inode;
+    /* dir에서 token이름의 파일을 검색하여 inode의 정보를 저장 */
+    if (!dir_lookup (dir, token, &inode))
+      return NULL;
+
+    /* inode가 파일일 경우 NULL 반환 */
+    if (!inode_is_dir (inode))
+      return NULL;
+
+    /* dir의 디렉터리 정보를 메모리에서 해지 */
+    dir_close (dir);
+
+    /* inode의 디렉터리 정보를 dir에 저장 */
+    dir = dir_open (inode);
+
+    /* token에 검색할 경로 이름 저장 */
+    token = nextToken;
+    nextToken = strtok_r (NULL, "/", &savePtr);
+
+    inode_close (inode);
+  }
+  /* token의 파일 이름을 file_name에 저장 */
+  strlcpy (file_name, token, strlen (token));
+
+  /* dir 정보 반환 */
+  return dir;
+}
+
+bool
+filesys_create_dir (const char *name)
+{
+  block_sector_t sector_idx;
+  /* name 경로 분석 */
+  char *cp_name = malloc (sizeof(char) * (strlen (name) + 1));
+  char *file_name = malloc (sizeof(char) * (strlen (name) + 1));
+  strlcpy (cp_name, name, strlen (name));
+  struct dir *dir = parse_path (cp_name, file_name);
+
+  /* bitmap에서 inode sector 번호 할당 */
+  bool success = (dir != NULL
+                  && free_map_allocate (1, &sector_idx)
+  /* 할당받은 sector에 file_name의 디렉터리 생성 */
+  // TODO: 두 번째 인자(length) 제대로 되어있는지 확인
+                  && inode_create (sector_idx, off_t length, 1)
+  /* 디렉터리 엔트리에 file_name의 엔트리 추가 */
+  /* 디렉터리 엔트리에 ‘.’, ‘..’ 파일의 엔트리 추가 */
+                  && dir_add (dir, file_name, sector_idx)
+                  && dir_add (dir, ".", sector_idx)
+                  && dir_add (dir, "..", sector_idx));
+  if (!success && inode_sector != 0)
+    free_map_release (inode_sector, 1);
 }

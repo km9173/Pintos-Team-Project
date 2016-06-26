@@ -6,6 +6,7 @@
 #include <devices/shutdown.h>
 #include "devices/input.h"
 #include "filesys/filesys.h"
+#include "filesys/inode.h"
 #include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *);
@@ -136,6 +137,31 @@ syscall_handler (struct intr_frame *f UNUSED)
       fd = *(int *)arg[0];
       close (fd);
       break;
+
+    // Subdirectory
+    case SYS_ISDIR:
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      fd = *(int *)arg[0];
+      f->eax = sys_isdir (fd);
+      break;
+
+    case SYS_CHDIR:
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      file = *(char **)arg[0];
+      f->eax = sys_chdir (dir);
+      break;
+
+    case SYS_MKDIR:
+      get_argument (f->esp, (int *)arg, 1);
+      chec_address((void *)arg[0]);
+      file = *(char **)arg[0];
+      f->eax = sys_mkdir (dir);
+      break;
+
+    case SYS_READDIR:
+    case SYS_INUMBER:
 
     default:
       thread_exit ();
@@ -339,4 +365,56 @@ close (int fd)
 
   process_close_file(fd);
   t->fd_size--;
+}
+
+bool
+sys_isdir (int fd)
+{
+  return inode_is_dir (process_get_file (fd)->inode);
+}
+
+bool
+sys_chdir (const char *dir)
+{
+  // TODO: 이 코드가 맞는지, 잘 동작하는지 확인
+  // TODO: malloc-free 대신 다른 방법 없을지 고민
+  char *cp_name = malloc (sizeof(char) * (strlen (dir) + 1));
+  char *file_name = malloc (sizeof(char) * (strlen (dir) + 1));
+  strlcpy (cp_name, dir, strlen (dir));
+
+  /* dir 경로를 분석하여 디렉터리를 반환 */
+  struct dir *dir = parse_path (cp_name, file_name);
+
+  free (cp_name);
+  free (file_name);
+
+  if (dir == NULL)
+    return false;
+  else {
+    /* 스레드의 현재 작업 디렉터리를 변경 */
+    thread_current ()->cur_dir = dir;
+    return true;
+  }
+}
+
+bool
+sys_mkdir (const char *dir)
+{
+  return filesys_create_dir (dir);
+}
+
+bool
+sys_readdir (int fd, char *name)
+{
+  /* fd 리스트에서 fd에 대한 file 정보를 얻어옴 */
+  struct file *p_file = process_get_file (fd);
+
+  /* fd의 file->inode가 디렉터리인지 검사 */
+  if (!inode_is_dir (p_file->inode))
+    return false;
+
+  /* p_file을 dir자료구조로 포인팅 */
+
+  /* 디렉터리의 엔트에서 “.”,”..” 이름을 제외한 파일이름을 name에 저장 */
+
 }
