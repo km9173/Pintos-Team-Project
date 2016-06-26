@@ -407,6 +407,7 @@ chdir (const char *dir)
   else {
     /* 스레드의 현재 작업 디렉터리를 변경 */
     thread_current ()->cur_dir = f_dir;
+    dir_close (f_dir);
     return true;
   }
 }

@@ -147,11 +147,8 @@ do_format (void)
   if (!dir_create (ROOT_DIR_SECTOR, 16))
     PANIC ("root directory creation failed");
   // Subdirectory
-  block_sector_t sector_idx;
-  free_map_allocate (1, &sector_idx);
-  dir_add (dir_open_root (), ".", sector_idx);
-  dir_add (dir_open_root (), "..", sector_idx);
-  free_map_release (sector_idx, 1);
+  dir_add (dir_open_root (), ".", ROOT_DIR_SECTOR);
+  dir_add (dir_open_root (), "..", ROOT_DIR_SECTOR);
   free_map_close ();
   printf ("done.\n");
 }
@@ -222,9 +219,16 @@ filesys_create_dir (const char *name)
                   && free_map_allocate (1, &sector_idx)
 
                   /* 할당받은 sector에 file_name의 디렉터리 생성 */
-                  // TODO: 두 번째 인자(length) 제대로 되어있는지 확인
-                  && inode_create (sector_idx, BLOCK_SECTOR_SIZE, 1)
+                  // TODO: 두 번째 인자(length) 충분한 지 확인
+                  && dir_create (sector_idx, 25);
 
+  if (success) {
+    struct inode *inode = inode_open (sector_idx);
+    dir_close (dir);
+    dir = dir_open (inode);
+  }
+
+  success         = success
                   /* 디렉터리 엔트리에 file_name의 엔트리 추가 */
                   && dir_add (dir, file_name, sector_idx)
                   /* 디렉터리 엔트리에 ‘.’, ‘..’ 파일의 엔트리 추가 */
@@ -232,6 +236,8 @@ filesys_create_dir (const char *name)
                   && dir_add (dir, "..", sector_idx));
   if (!success && sector_idx != 0)
     free_map_release (sector_idx, 1);
+
+  dir_close (dir);
 
   free (cp_name);
   free (file_name);
