@@ -169,10 +169,10 @@ parse_path (char *path_name, char *file_name)
     return NULL;
 
   /* PATH_NAME의 절대/상대경로에 따른 디렉터리 정보 저장 (구현)*/
-  if (*path_name == '/')
+  if (path_name[0] == '/')
     dir = dir_open_root ();
   else
-    dir = thread_current ()->cur_dir;
+    dir = dir_reopen (thread_current ()->cur_dir);
 
   char *token, *nextToken, *savePtr;
   token = strtok_r (path_name, "/", &savePtr);
@@ -200,7 +200,7 @@ parse_path (char *path_name, char *file_name)
     inode_close (inode);
   }
   /* token의 파일 이름을 file_name에 저장 */
-  strlcpy (file_name, token, strlen (token));
+  strlcpy (file_name, token, strlen (token) + 1);
 
   /* dir 정보 반환 */
   return dir;
